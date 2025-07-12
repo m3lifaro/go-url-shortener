@@ -24,13 +24,13 @@ func redirect(w http.ResponseWriter, r *http.Request, cache map[string]string) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	redirectUrl := cache[r.PathValue("id")]
-	if redirectUrl == "" {
+	redirectURL := cache[r.PathValue("id")]
+	if redirectURL == "" {
 		http.NotFound(w, r)
 		return
 	}
-	println("Redirecting to: " + redirectUrl)
-	w.Header().Set("Location", redirectUrl)
+	println("Redirecting to: " + redirectURL)
+	w.Header().Set("Location", redirectURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 	//http.Redirect(w, r, "https://ya.rus", http.StatusTemporaryRedirect)
 }
@@ -54,17 +54,17 @@ func urlConvertionHandler(w http.ResponseWriter, r *http.Request, cache map[stri
 		log.Printf("Error reading request body: %v", err)
 		return
 	}
-	textUrl := string(body)
-	println("URL: " + textUrl)
-	shortedUrl := shortenURL(textUrl)
-	cache[shortedUrl] = textUrl
-	println("Shorten url: " + shortedUrl)
+	textURL := string(body)
+	println("URL: " + textURL)
+	shortedURL := shortenURL(textURL)
+	cache[shortedURL] = textURL
+	println("Shorten url: " + shortedURL)
 	for k, v := range cache {
 		fmt.Println(k, v)
 	}
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte("http://localhost:8080/" + shortedUrl))
+	_, _ = w.Write([]byte("http://localhost:8080/" + shortedURL))
 }
 
 func run(cache map[string]string) error {
