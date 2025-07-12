@@ -19,6 +19,7 @@ func main() {
 }
 
 func redirect(w http.ResponseWriter, r *http.Request, cache map[string]string) {
+	println(1111)
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -62,20 +63,21 @@ func urlConvertionHandler(w http.ResponseWriter, r *http.Request, cache map[stri
 		fmt.Println(k, v)
 	}
 	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write([]byte("http://localhost:8080/" + shortedUrl))
 }
 
 func run(cache map[string]string) error {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/{id}/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		redirect(w, r, cache)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
+		//if r.URL.Path != "/" {
+		//	http.NotFound(w, r)
+		//	return
+		//}
 		urlConvertionHandler(w, r, cache)
 	})
 	return http.ListenAndServe(":8080", mux)
