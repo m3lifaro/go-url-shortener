@@ -21,8 +21,8 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 
 	var shortenService = service.NewShortener(mock)
 	var handler = NewShortenHandler(shortenService)
-	var validHeader = "text/plain"
-	//var invalidHeader = "application/json; charset=utf-8"
+	var validHeader = "text/plain; charset=utf-8"
+	var invalidHeader = "application/json; charset=utf-8"
 	testCases := []struct {
 		method       string
 		expectedCode int
@@ -33,7 +33,7 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 		{method: http.MethodGet, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodPut, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodDelete, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
-		//{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported content-type. Only 'text/plain' allowed", header: invalidHeader},
+		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported Content-Type. Expected 'text/plain', got: application/json", header: invalidHeader},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed", header: validHeader},
 		{method: http.MethodPost, expectedCode: http.StatusCreated, expectedBody: "http://localhost:8080/06509a58", header: validHeader, body: "ya.ru"},
 	}

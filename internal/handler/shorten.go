@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"io"
+	"mime"
 	"net/http"
 )
 
@@ -26,13 +27,14 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	//contentHeader := r.Header.Get("content-type")
-	//if contentHeader != "text/plain" {
-	//	println("content-type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	w.Write([]byte("Unsupported content-type. Only 'text/plain' allowed"))
-	//	return
-	//}
+	contentHeader := r.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(contentHeader)
+	if err != nil || mediaType != "text/plain" {
+		println("Content-Type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain', got: " + mediaType))
+		return
+	}
 	defer r.Body.Close()
 
 	url := string(body)

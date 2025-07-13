@@ -23,7 +23,6 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("id")
 	url, exists := h.service.GetOriginal(key)
 	if !exists {
-		//w.WriteHeader(http.StatusNotFound)
 		http.NotFound(w, r)
 		return
 	}
