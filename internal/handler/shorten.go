@@ -15,6 +15,7 @@ func NewShortenHandler(service *service.Shortener) *ShortenHandler {
 }
 
 func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	println("shorten handler")
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -27,6 +28,7 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	contentHeader := r.Header.Get("content-type")
 	if contentHeader != "text/plain" {
+		println("content-type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Unsupported content-type. Only 'text/plain' allowed"))
 		return

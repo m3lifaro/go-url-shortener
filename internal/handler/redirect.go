@@ -14,6 +14,7 @@ func NewRedirectHandler(service *service.Shortener) *RedirectHandler {
 }
 
 func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	println("redirect handler")
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
