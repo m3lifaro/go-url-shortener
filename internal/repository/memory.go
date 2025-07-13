@@ -5,12 +5,17 @@ import (
 	"sync"
 )
 
+type Storage interface {
+	Get(key string) (string, bool)
+	Set(key, url string)
+}
+
 type MemoryStorage struct {
 	mu    sync.RWMutex
 	cache map[string]string
 }
 
-func NewMemoryStorage() *MemoryStorage {
+func NewMemoryStorage() Storage {
 	return &MemoryStorage{
 		cache: make(map[string]string),
 	}

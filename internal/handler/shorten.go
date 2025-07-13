@@ -25,9 +25,20 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	contentHeader := r.Header.Get("content-type")
+	if contentHeader != "text/plain" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unsupported content-type. Only 'text/plain' allowed"))
+		return
+	}
 	defer r.Body.Close()
 
 	url := string(body)
+	if len(url) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Empty url not allowed"))
+		return
+	}
 	shortedURL := h.service.Shorten(url)
 	println("URL: " + url)
 	println("Shorten url: " + shortedURL)

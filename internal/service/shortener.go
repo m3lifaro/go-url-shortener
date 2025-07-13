@@ -7,10 +7,10 @@ import (
 )
 
 type Shortener struct {
-	storage *repository.MemoryStorage
+	storage repository.Storage
 }
 
-func NewShortener(storage *repository.MemoryStorage) *Shortener {
+func NewShortener(storage repository.Storage) *Shortener {
 	return &Shortener{storage: storage}
 }
 
