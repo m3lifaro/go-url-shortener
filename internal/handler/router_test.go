@@ -67,6 +67,7 @@ func TestRouter(t *testing.T) {
 	}
 	for _, v := range tests {
 		resp, body := testRequest(t, ts, v.method, v.url, "text/plain", v.body)
+		resp.Body.Close()
 		if v.expectedHeader != nil {
 			assert.Equal(t, v.expectedHeader[1], resp.Header.Get(v.expectedHeader[0]), "Значение хидера не совпадает с ожидаемым")
 		}
