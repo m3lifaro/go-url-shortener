@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
@@ -41,9 +42,9 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 		t.Run(tc.method, func(t *testing.T) {
 			r := httptest.NewRequest(tc.method, "/"+tc.url, nil)
 			w := httptest.NewRecorder()
-			mux := http.NewServeMux()
-			mux.Handle("GET /{id}", handler)
-			mux.ServeHTTP(w, r)
+			chi := chi.NewRouter()
+			chi.Get("/{id}", handler.ServeHTTP)
+			chi.ServeHTTP(w, r)
 			if r := w.Header().Get("Location"); r != "" {
 				assert.Equal(t, tc.expectedHeader, r)
 			}
