@@ -20,7 +20,7 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 	}
 
 	var shortenService = service.NewShortener(mock)
-	var handler = NewShortenHandler(shortenService)
+	var handler = NewShortenHandler(shortenService, "http://localhost:8080/")
 	var validHeader = "text/plain; charset=utf-8"
 	var invalidHeader = "application/json; charset=utf-8"
 	testCases := []struct {

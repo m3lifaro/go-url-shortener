@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"io"
 	"log"
@@ -10,10 +11,11 @@ import (
 
 type ShortenHandler struct {
 	service *service.Shortener
+	baseURL string
 }
 
-func NewShortenHandler(service *service.Shortener) *ShortenHandler {
-	return &ShortenHandler{service: service}
+func NewShortenHandler(service *service.Shortener, baseURL string) *ShortenHandler {
+	return &ShortenHandler{service: service, baseURL: baseURL}
 }
 
 func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -46,9 +48,9 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	shortedURL := h.service.Shorten(url)
 	log.Println("URL: " + url)
-	log.Println("Shorten url: " + shortedURL)
+	log.Println("Shorten url: " + h.baseURL + shortedURL)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("http://localhost:8080/" + shortedURL))
+	w.Write([]byte(fmt.Sprintf("%s%s", h.baseURL, shortedURL)))
 }

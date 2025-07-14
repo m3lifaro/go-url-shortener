@@ -43,7 +43,7 @@ func TestRouter(t *testing.T) {
 
 	var shortenService = service.NewShortener(mock)
 	var rHandler = NewRedirectHandler(shortenService)
-	var sHandler = NewShortenHandler(shortenService)
+	var sHandler = NewShortenHandler(shortenService, "http://localhost:8080/")
 	ts := httptest.NewServer(NewRouter(&Handlers{
 		Redirect: rHandler.ServeHTTP,
 		Shorten:  sHandler.ServeHTTP,

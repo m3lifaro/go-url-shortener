@@ -10,9 +10,9 @@ type Handlers struct {
 	Redirect http.HandlerFunc
 }
 
-func NewHandlers(svc *service.Shortener) *Handlers {
+func NewHandlers(svc *service.Shortener, baseURL string) *Handlers {
 	return &Handlers{
-		Shorten:  NewShortenHandler(svc).ServeHTTP,
+		Shorten:  NewShortenHandler(svc, baseURL).ServeHTTP,
 		Redirect: NewRedirectHandler(svc).ServeHTTP,
 	}
 }
