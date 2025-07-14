@@ -3,6 +3,7 @@ module github.com/m3lifaro/go-url-shortener
 go 1.24.4
 
 require (
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/stretchr/testify v1.10.0
 )

@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
+	"log"
 	"net/http"
 )
 
@@ -14,19 +16,19 @@ func NewRedirectHandler(service *service.Shortener) *RedirectHandler {
 }
 
 func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	println("redirect handler")
+	log.Println("[Redirect handler] Handle event")
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	key := r.PathValue("id")
+	key := chi.URLParam(r, "id")
 	url, exists := h.service.GetOriginal(key)
 	if !exists {
 		http.NotFound(w, r)
 		return
 	}
-	println("Redirecting to: " + url)
+	log.Println("Redirecting to: " + url)
 
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)

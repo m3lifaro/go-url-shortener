@@ -14,7 +14,6 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 		SetFunc: func(key, url string) {
 		},
 		GetFunc: func(key string) (string, bool) {
-			println("redirect handler1" + key)
 			if key == "not_found" {
 				return "", false
 			}

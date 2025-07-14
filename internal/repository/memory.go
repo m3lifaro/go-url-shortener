@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -32,8 +31,4 @@ func (s *MemoryStorage) Set(key, value string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.cache[key] = value
-	fmt.Println("BOMBAKLAT")
-	for k, v := range s.cache {
-		fmt.Println(k, v)
-	}
 }

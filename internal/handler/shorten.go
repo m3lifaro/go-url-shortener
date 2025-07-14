@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"io"
+	"log"
 	"mime"
 	"net/http"
 )
@@ -16,7 +17,7 @@ func NewShortenHandler(service *service.Shortener) *ShortenHandler {
 }
 
 func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	println("shorten handler")
+	log.Println("[Shorten handler] Handle event")
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -30,7 +31,7 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	contentHeader := r.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(contentHeader)
 	if err != nil || mediaType != "text/plain" {
-		println("Content-Type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
+		log.Println("Content-Type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain', got: " + mediaType))
 		return
@@ -44,8 +45,8 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	shortedURL := h.service.Shorten(url)
-	println("URL: " + url)
-	println("Shorten url: " + shortedURL)
+	log.Println("URL: " + url)
+	log.Println("Shorten url: " + shortedURL)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
