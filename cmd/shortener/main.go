@@ -19,6 +19,6 @@ func main() {
 	shortenService := service.NewShortener(storage)
 	handlers := handler.NewHandlers(shortenService, cfg.BaseURL)
 	r := handler.NewRouter(handlers)
-	log.Println("Server started on :8080")
+	log.Printf("Server started on %s", cfg.ServeAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
 }

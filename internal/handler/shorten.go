@@ -7,7 +7,10 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"os"
 )
+
+const contentType = "text/plain"
 
 type ShortenHandler struct {
 	service *service.Shortener
@@ -32,7 +35,7 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	contentHeader := r.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(contentHeader)
-	if err != nil || mediaType != "text/plain" {
+	if err != nil || mediaType != contentType {
 		log.Println("Content-Type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain', got: " + mediaType))
@@ -46,11 +49,17 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Empty url not allowed"))
 		return
 	}
-	shortedURL := h.service.Shorten(url)
+	shortedURL, err := h.service.Shorten(url)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(os.Stderr, "Got error while shortening url: %v\n", err)
+		w.Write([]byte("Got error while shortening url: " + err.Error()))
+		return
+	}
 	log.Println("URL: " + url)
 	log.Println("Shorten url: " + h.baseURL + shortedURL)
 
-	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf("%s%s", h.baseURL, shortedURL)))
 }

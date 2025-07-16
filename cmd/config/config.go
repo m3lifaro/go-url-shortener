@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+const (
+	defaultHost = ":8080"
+	defaultBase = "http://localhost:8080"
+)
+
 type Configuration struct {
 	ServeAddress string
 	BaseURL      string
@@ -16,8 +21,8 @@ type Configuration struct {
 
 func Load() (*Configuration, error) {
 	var cfg Configuration
-	flag.StringVar(&cfg.ServeAddress, "a", ":8080", "Address to listen on")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "Base URL for shorted links")
+	flag.StringVar(&cfg.ServeAddress, "a", defaultHost, "Address to listen on")
+	flag.StringVar(&cfg.BaseURL, "b", defaultBase, "Base URL for shorted links")
 	flag.Parse()
 	err := cfg.Validate()
 	if err != nil {
@@ -27,13 +32,12 @@ func Load() (*Configuration, error) {
 }
 
 func (c *Configuration) Validate() error {
-	if e := c.validateServeAddress(); e != nil {
-		return e
+	if err := c.validateServeAddress(); err != nil {
+		return err
 	}
-	if e := c.validateBaseURL(); e != nil {
-		return e
+	if err := c.validateBaseURL(); err != nil {
+		return err
 	}
-	println(c.BaseURL)
 	return nil
 }
 

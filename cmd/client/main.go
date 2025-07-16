@@ -14,7 +14,8 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	long, err := reader.ReadString('\n')
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Ошибка чтения: %v\n", err)
+		return
 	}
 	long = strings.TrimSuffix(long, "\n")
 	client := resty.New()
@@ -24,7 +25,8 @@ func main() {
 		SetHeader("Content-Type", "text/plain").
 		Post(endpoint)
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Ошибка отправки: %v\n", err)
+		return
 	}
 	fmt.Println("Статус-код ", response.Status())
 	fmt.Println("Тело ответа ", response)

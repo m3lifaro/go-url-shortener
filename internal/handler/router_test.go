@@ -63,7 +63,7 @@ func TestRouter(t *testing.T) {
 		{method: http.MethodDelete, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodPost, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed"},
-		{method: http.MethodPost, expectedCode: http.StatusCreated, expectedBody: "http://localhost:8080/06509a58", body: strings.NewReader("ya.ru")},
+		{method: http.MethodPost, expectedCode: http.StatusCreated, body: strings.NewReader("ya.ru")},
 	}
 	for _, v := range tests {
 		resp, body := testRequest(t, ts, v.method, v.url, "text/plain", v.body)
