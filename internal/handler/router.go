@@ -7,6 +7,7 @@ import (
 
 func NewRouter(h *Handlers) chi.Router {
 	r := chi.NewRouter()
+	r.Use(LoggingMiddleware)
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.Shorten)
 		r.Get("/{id}", h.Redirect)

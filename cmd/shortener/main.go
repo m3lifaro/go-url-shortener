@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/m3lifaro/go-url-shortener/cmd/config"
 	"github.com/m3lifaro/go-url-shortener/internal/handler"
+	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"log"
@@ -10,6 +11,10 @@ import (
 )
 
 func main() {
+	err := logger.Initialize("INFO")
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
