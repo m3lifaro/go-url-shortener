@@ -20,7 +20,7 @@ type ShortenJsonHandler struct {
 	baseURL string
 }
 
-func NewShortenJsonHandler(service *service.Shortener, baseURL string) *ShortenJsonHandler {
+func NewShortenJSONHandler(service *service.Shortener, baseURL string) *ShortenJsonHandler {
 	return &ShortenJsonHandler{service: service, baseURL: baseURL}
 }
 

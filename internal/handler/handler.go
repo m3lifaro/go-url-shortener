@@ -15,6 +15,6 @@ func NewHandlers(svc *service.Shortener, baseURL string) *Handlers {
 	return &Handlers{
 		Shorten:     NewShortenHandler(svc, baseURL).ServeHTTP,
 		Redirect:    NewRedirectHandler(svc).ServeHTTP,
-		ShortenJson: NewShortenJsonHandler(svc, baseURL).ServeHTTP,
+		ShortenJson: NewShortenJSONHandler(svc, baseURL).ServeHTTP,
 	}
 }
