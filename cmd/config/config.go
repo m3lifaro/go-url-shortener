@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -24,6 +25,12 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.ServeAddress, "a", defaultHost, "Address to listen on")
 	flag.StringVar(&cfg.BaseURL, "b", defaultBase, "Base URL for shorted links")
 	flag.Parse()
+	if serverAddr := os.Getenv("SERVER_ADDRESS"); serverAddr != "" {
+		cfg.ServeAddress = serverAddr
+	}
+	if baseURL := os.Getenv("BASE_URL"); baseURL != "" {
+		cfg.BaseURL = baseURL
+	}
 	err := cfg.Validate()
 	if err != nil {
 		return nil, err
