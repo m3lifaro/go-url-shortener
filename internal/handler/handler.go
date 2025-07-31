@@ -6,13 +6,15 @@ import (
 )
 
 type Handlers struct {
-	Shorten  http.HandlerFunc
-	Redirect http.HandlerFunc
+	Shorten     http.HandlerFunc
+	Redirect    http.HandlerFunc
+	ShortenJson http.HandlerFunc
 }
 
 func NewHandlers(svc *service.Shortener, baseURL string) *Handlers {
 	return &Handlers{
-		Shorten:  NewShortenHandler(svc, baseURL).ServeHTTP,
-		Redirect: NewRedirectHandler(svc).ServeHTTP,
+		Shorten:     NewShortenHandler(svc, baseURL).ServeHTTP,
+		Redirect:    NewRedirectHandler(svc).ServeHTTP,
+		ShortenJson: NewShortenJsonHandler(svc, baseURL).ServeHTTP,
 	}
 }
