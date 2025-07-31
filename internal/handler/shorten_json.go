@@ -15,16 +15,16 @@ import (
 
 const jsonContentType = "application/json"
 
-type ShortenJsonHandler struct {
+type ShortenJSONHandler struct {
 	service *service.Shortener
 	baseURL string
 }
 
-func NewShortenJSONHandler(service *service.Shortener, baseURL string) *ShortenJsonHandler {
-	return &ShortenJsonHandler{service: service, baseURL: baseURL}
+func NewShortenJSONHandler(service *service.Shortener, baseURL string) *ShortenJSONHandler {
+	return &ShortenJSONHandler{service: service, baseURL: baseURL}
 }
 
-func (h *ShortenJsonHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("[Shorten JSON handler] Handle event")
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)

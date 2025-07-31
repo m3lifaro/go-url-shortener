@@ -10,7 +10,7 @@ func NewRouter(h *Handlers) chi.Router {
 	r.Use(LoggingMiddleware)
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.Shorten)
-		r.Post("/api/shorten", h.ShortenJson)
+		r.Post("/api/shorten", h.ShortenJSON)
 		r.Get("/{id}", h.Redirect)
 	})
 	log.Println("Hello from CHI Router")

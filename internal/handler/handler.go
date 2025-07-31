@@ -8,13 +8,13 @@ import (
 type Handlers struct {
 	Shorten     http.HandlerFunc
 	Redirect    http.HandlerFunc
-	ShortenJson http.HandlerFunc
+	ShortenJSON http.HandlerFunc
 }
 
 func NewHandlers(svc *service.Shortener, baseURL string) *Handlers {
 	return &Handlers{
 		Shorten:     NewShortenHandler(svc, baseURL).ServeHTTP,
 		Redirect:    NewRedirectHandler(svc).ServeHTTP,
-		ShortenJson: NewShortenJSONHandler(svc, baseURL).ServeHTTP,
+		ShortenJSON: NewShortenJSONHandler(svc, baseURL).ServeHTTP,
 	}
 }
