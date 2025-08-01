@@ -18,6 +18,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Accept-Encoding", "")
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
