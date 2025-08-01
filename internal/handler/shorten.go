@@ -39,10 +39,11 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	print("BIMBOOOOO")
 	print(url)
 	print("BIMBOOOOO")
-	if err != nil || mediaType != contentType {
-		log.Println("Content-Type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
+
+	if err != nil || (mediaType != "text/plain" && mediaType != "application/x-gzip") {
+		log.Println("Content-Type is not [text/plain|application/x-gzip]. [func (h *ShortenHandler) ServeHTTP]")
 		w.WriteHeader(http.StatusNotAcceptable)
-		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain', got: " + mediaType))
+		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain' or 'application/x-gzip', got: " + mediaType))
 		return
 	}
 	defer r.Body.Close()
