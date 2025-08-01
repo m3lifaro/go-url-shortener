@@ -39,6 +39,7 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Error("got error, while decoding HTTP request",
 			zap.Error(err),
 		)
+		fmt.Printf("%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

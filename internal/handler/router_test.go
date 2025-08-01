@@ -51,6 +51,7 @@ func TestRouter(t *testing.T) {
 		expectedBody   string
 		expectedHeader []string
 		body           io.Reader
+		contentType    string
 	}{
 		{method: http.MethodGet, url: "/ya", expectedCode: http.StatusOK},
 		{method: http.MethodGet, url: "/not_found", expectedCode: http.StatusNotFound, expectedBody: "404 page not found\n"},
@@ -58,11 +59,16 @@ func TestRouter(t *testing.T) {
 		{method: http.MethodDelete, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodPost, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed"},
-		{method: http.MethodPost, expectedCode: http.StatusCreated, body: strings.NewReader("ya.ru")},
+		{method: http.MethodPost, expectedCode: http.StatusCreated, body: strings.NewReader("ya.ru"), expectedHeader: []string{"Content-Type", "text/plain"}},
+		{method: http.MethodPost, url: "/api/shorten", expectedCode: http.StatusCreated, body: strings.NewReader(`{"url": "ya.ru"}`), contentType: "application/json", expectedHeader: []string{"Content-Type", "application/json"}},
 	}
 	for _, v := range tests {
-		resp, body := testRequest(t, ts, v.method, v.url, "text/plain", v.body)
-		resp.Body.Close()
+		requestCT := "text/plain"
+		if v.contentType != "" {
+			requestCT = v.contentType
+		}
+		resp, body := testRequest(t, ts, v.method, v.url, requestCT, v.body)
+		_ = resp.Body.Close()
 		if v.expectedHeader != nil {
 			assert.Equal(t, v.expectedHeader[1], resp.Header.Get(v.expectedHeader[0]), "Значение хидера не совпадает с ожидаемым")
 		}
