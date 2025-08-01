@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"compress/gzip"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
@@ -16,17 +17,34 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 	path, contentType string, body io.Reader) (*http.Response, string) {
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
-
+	var respBody []byte
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("Accept-Encoding", "")
+	req.Header.Set("Accept-Encoding", "gzip")
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
+	contentEncoding := resp.Header.Get("Content-Encoding")
+	contentTyp := resp.Header.Get("Content-Type")
+	//fmt.Println("Headers:")
+	//for key, values := range resp.Header {
+	//	// Заголовок может иметь несколько значений (например, Set-Cookie)
+	//	for _, value := range values {
+	//		fmt.Printf("%s: %s\n", key, value)
+	//	}
+	//}
+	if strings.Contains(contentEncoding, "gzip") || strings.Contains(contentTyp, "application/x-gzip") {
+		zr, err := gzip.NewReader(resp.Body)
+		require.NoError(t, err)
 
+		respBody, err = io.ReadAll(zr)
+		require.NoError(t, err)
+
+	} else {
+		respBody, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+	}
 	return resp, string(respBody)
 }
 
@@ -55,7 +73,7 @@ func TestRouter(t *testing.T) {
 		contentType    string
 	}{
 		{method: http.MethodGet, url: "/ya", expectedCode: http.StatusOK},
-		{method: http.MethodGet, url: "/not_found", expectedCode: http.StatusNotFound, expectedBody: "404 page not found\n"},
+		{method: http.MethodGet, url: "/not_found", expectedCode: http.StatusNotFound},
 		{method: http.MethodPut, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodDelete, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodPost, url: "/ya", expectedCode: http.StatusMethodNotAllowed},

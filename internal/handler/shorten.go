@@ -35,15 +35,18 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	contentHeader := r.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(contentHeader)
+	url := string(body)
+	print("BIMBOOOOO")
+	print(url)
+	print("BIMBOOOOO")
 	if err != nil || mediaType != contentType {
 		log.Println("Content-Type is not text/plain. [func (h *ShortenHandler) ServeHTTP]")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotAcceptable)
 		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain', got: " + mediaType))
 		return
 	}
 	defer r.Body.Close()
 
-	url := string(body)
 	if len(url) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Empty url not allowed"))

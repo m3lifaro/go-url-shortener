@@ -32,7 +32,7 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 		expectedHeader string
 	}{
 		{method: http.MethodGet, url: "ya", expectedCode: http.StatusTemporaryRedirect, expectedBody: "", expectedHeader: "https://ya.ru"},
-		{method: http.MethodGet, url: "not_found", expectedCode: http.StatusNotFound, expectedBody: "404 page not found\n"},
+		{method: http.MethodGet, url: "not_found", expectedCode: http.StatusNotFound, expectedBody: ""},
 		{method: http.MethodPut, url: "ya", expectedCode: http.StatusMethodNotAllowed, expectedBody: ""},
 		{method: http.MethodDelete, url: "ya", expectedCode: http.StatusMethodNotAllowed, expectedBody: ""},
 		{method: http.MethodPost, url: "ya", expectedCode: http.StatusMethodNotAllowed, expectedBody: ""},

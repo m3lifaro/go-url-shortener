@@ -35,7 +35,7 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 		{method: http.MethodGet, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodPut, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodDelete, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
-		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported Content-Type. Expected 'text/plain', got: application/json", header: invalidHeader},
+		{method: http.MethodPost, expectedCode: http.StatusNotAcceptable, expectedBody: "Unsupported Content-Type. Expected 'text/plain', got: application/json", header: invalidHeader},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed", header: validHeader},
 		{method: http.MethodPost, expectedCode: http.StatusCreated, header: validHeader, body: "ya.ru"},
 	}

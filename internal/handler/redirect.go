@@ -25,7 +25,7 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "id")
 	url, exists := h.service.GetOriginal(key)
 	if !exists {
-		http.NotFound(w, r)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	log.Println("Redirecting to: " + url)

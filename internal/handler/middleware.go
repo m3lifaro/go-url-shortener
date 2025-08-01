@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"go.uber.org/zap"
 	"net/http"
@@ -89,6 +90,7 @@ func gzipMiddleware(next http.Handler) http.Handler {
 			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
+				fmt.Printf("%v", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
