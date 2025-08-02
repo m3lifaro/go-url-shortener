@@ -2,7 +2,9 @@ package handler
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 )
@@ -23,7 +25,14 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := chi.URLParam(r, "id")
-	url, exists := h.service.GetOriginal(key)
+	url, exists, err := h.service.GetOriginal(key)
+	if err != nil {
+		logger.Log.Error("got error getting original",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	if !exists {
 		w.WriteHeader(http.StatusNotFound)
 		return

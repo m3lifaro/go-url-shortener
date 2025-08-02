@@ -36,9 +36,6 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	contentHeader := r.Header.Get("Content-Type")
 	mediaType, _, err := mime.ParseMediaType(contentHeader)
 	url := string(body)
-	print("BIMBOOOOO")
-	print(url)
-	print("BIMBOOOOO")
 
 	if err != nil || (mediaType != "text/plain" && mediaType != "application/x-gzip") {
 		log.Println("Content-Type is not [text/plain|application/x-gzip]. [func (h *ShortenHandler) ServeHTTP]")

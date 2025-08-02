@@ -11,16 +11,24 @@ import (
 )
 
 func main() {
-	err := logger.Initialize("INFO")
-	if err != nil {
-		log.Fatalf("Failed to initialize logger: %v", err)
-	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 	log.Println("Config:", cfg)
-	storage := repository.NewMemoryStorage(cfg.StorageFile)
+
+	err = logger.Initialize(cfg.LogLevel)
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+
+	storage, err := repository.NewMemoryStorage(cfg.StorageFile)
+	defer storage.Close()
+
+	if err != nil {
+		log.Fatalf("Failed to initialize storage: %v", err)
+	}
 	shortenService := service.NewShortener(storage)
 	handlers := handler.NewHandlers(shortenService, cfg.BaseURL)
 	r := handler.NewRouter(handlers)

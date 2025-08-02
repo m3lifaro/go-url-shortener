@@ -27,13 +27,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 
 	contentEncoding := resp.Header.Get("Content-Encoding")
 	contentTyp := resp.Header.Get("Content-Type")
-	//fmt.Println("Headers:")
-	//for key, values := range resp.Header {
-	//	// Заголовок может иметь несколько значений (например, Set-Cookie)
-	//	for _, value := range values {
-	//		fmt.Printf("%s: %s\n", key, value)
-	//	}
-	//}
+
 	if strings.Contains(contentEncoding, "gzip") || strings.Contains(contentTyp, "application/x-gzip") {
 		zr, err := gzip.NewReader(resp.Body)
 		require.NoError(t, err)
@@ -50,13 +44,14 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 
 func TestRouter(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) {
+		SetFunc: func(key, url string) error {
+			return nil
 		},
-		GetFunc: func(key string) (string, bool) {
+		GetFunc: func(key string) (string, bool, error) {
 			if key == "not_found" {
-				return "", false
+				return "", false, nil
 			}
-			return "https://ya.ru", true
+			return "https://ya.ru", true, nil
 		},
 	}
 

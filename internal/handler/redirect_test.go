@@ -12,13 +12,14 @@ import (
 
 func TestRedirectHandler_ServeHTTP(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) {
+		SetFunc: func(key, url string) error {
+			return nil
 		},
-		GetFunc: func(key string) (string, bool) {
+		GetFunc: func(key string) (string, bool, error) {
 			if key == "not_found" {
-				return "", false
+				return "", false, nil
 			}
-			return "https://ya.ru", true
+			return "https://ya.ru", true, nil
 		},
 	}
 

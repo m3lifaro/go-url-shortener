@@ -3,67 +3,102 @@ package repository
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
+	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
+	"go.uber.org/zap"
 	"os"
 	"strconv"
 	"sync"
 )
 
 type Storage interface {
-	Get(key string) (string, bool)
-	Set(key, url string)
+	Get(key string) (string, bool, error)
+	Set(key, url string) error
+	Close() error
 }
 
 type MemoryStorage struct {
 	mu       sync.RWMutex
 	cache    map[string]string
 	nextID   int
-	fileName string
+	producer *Producer
 }
 
-func NewMemoryStorage(fileName string) Storage {
-	consumer, _ := NewConsumer(fileName)
+func NewMemoryStorage(fileName string) (Storage, error) {
+	consumer, err := NewConsumer(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create file consumer: %w", err)
+	}
+	defer consumer.Close()
+
 	events, err := consumer.ReadAllEvents()
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to read events from file(%s): %w", fileName, err)
 	}
 	maxID := 0
+	cache := make(map[string]string)
 	for _, v := range *events {
+		if e, exists := cache[v.ShortenURL]; exists {
+			logger.Log.Warn("got duplicated event",
+				zap.String("shorten_url", v.ShortenURL),
+				zap.String("url", v.URL),
+				zap.String("already_presented_as", e),
+			)
+			continue
+		}
+		cache[v.ShortenURL] = v.URL
 		convertedID, err := strconv.Atoi(v.ID)
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("failed to parse ID: %w", err)
 		}
 		if convertedID > maxID {
 			maxID = convertedID
 		}
 	}
-	defer consumer.Close()
+
+	producer, err := NewProducer(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create producer: %w", err)
+	}
 	return &MemoryStorage{
 		cache:    make(map[string]string),
-		fileName: fileName,
 		nextID:   maxID + 1,
-	}
+		producer: producer,
+	}, nil
 }
 
-func (s *MemoryStorage) Get(key string) (string, bool) {
+func (s *MemoryStorage) Get(key string) (string, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	val, ok := s.cache[key]
-	return val, ok
+	return val, ok, nil
 }
 
-func (s *MemoryStorage) Set(key, value string) {
+func (s *MemoryStorage) Set(key, value string) error {
 	s.mu.Lock()
-	producer, _ := NewProducer(s.fileName)
-	producer.WriteEvent(&model.ShortenRecord{ID: strconv.Itoa(s.nextID), URL: value, ShortenURL: key})
-	s.nextID++
 	defer s.mu.Unlock()
+
+	if _, exists := s.cache[key]; exists {
+		return fmt.Errorf("key %s already exists", key)
+	}
+
+	record := &model.ShortenRecord{ID: strconv.Itoa(s.nextID), URL: value, ShortenURL: key}
+
+	if err := s.producer.WriteEvent(record); err != nil {
+		return fmt.Errorf("failed to write event: %w", err)
+	}
+
 	s.cache[key] = value
+	s.nextID++
+	return nil
+}
+func (s *MemoryStorage) Close() error {
+	return s.producer.Close()
 }
 
 type Producer struct {
-	file *os.File
-	// добавляем Writer в Producer
+	file   *os.File
 	writer *bufio.Writer
 }
 
@@ -74,8 +109,7 @@ func NewProducer(filename string) (*Producer, error) {
 	}
 
 	return &Producer{
-		file: file,
-		// создаём новый Writer
+		file:   file,
 		writer: bufio.NewWriter(file),
 	}, nil
 }
@@ -86,23 +120,19 @@ func (p *Producer) WriteEvent(event *model.ShortenRecord) error {
 		return err
 	}
 
-	// записываем событие в буфер
 	if _, err := p.writer.Write(data); err != nil {
 		return err
 	}
 
-	// добавляем перенос строки
 	if err := p.writer.WriteByte('\n'); err != nil {
 		return err
 	}
 
-	// записываем буфер в файл
 	return p.writer.Flush()
 }
 
 type Consumer struct {
-	file *os.File
-	// заменяем Reader на Scanner
+	file    *os.File
 	scanner *bufio.Scanner
 }
 
@@ -113,18 +143,15 @@ func NewConsumer(filename string) (*Consumer, error) {
 	}
 
 	return &Consumer{
-		file: file,
-		// создаём новый scanner
+		file:    file,
 		scanner: bufio.NewScanner(file),
 	}, nil
 }
 
 func (c *Consumer) ReadEvent() (*model.ShortenRecord, error) {
-	// одиночное сканирование до следующей строки
 	if !c.scanner.Scan() {
 		return nil, c.scanner.Err()
 	}
-	// читаем данные из scanner
 	data := c.scanner.Bytes()
 
 	event := model.ShortenRecord{}
@@ -154,4 +181,8 @@ func (c *Consumer) ReadAllEvents() (*[]model.ShortenRecord, error) {
 
 func (c *Consumer) Close() error {
 	return c.file.Close()
+}
+
+func (p *Producer) Close() error {
+	return p.file.Close()
 }

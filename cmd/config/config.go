@@ -14,12 +14,14 @@ const (
 	defaultHost        = ":8080"
 	defaultBase        = "http://localhost:8080"
 	defaultFileStorage = "database"
+	defaultLogLevel    = "DEBUG"
 )
 
 type Configuration struct {
 	ServeAddress string
 	BaseURL      string
 	StorageFile  string
+	LogLevel     string
 }
 
 func Load() (*Configuration, error) {
@@ -27,6 +29,7 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.ServeAddress, "a", defaultHost, "Address to listen on")
 	flag.StringVar(&cfg.BaseURL, "b", defaultBase, "Base URL for shorted links")
 	flag.StringVar(&cfg.StorageFile, "f", defaultFileStorage, "File for links storage")
+	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "Log level")
 	flag.Parse()
 	if serverAddr := os.Getenv("SERVER_ADDRESS"); serverAddr != "" {
 		cfg.ServeAddress = serverAddr
@@ -36,6 +39,9 @@ func Load() (*Configuration, error) {
 	}
 	if fileStorage := os.Getenv("FILE_STORAGE_PATH"); fileStorage != "" {
 		cfg.StorageFile = fileStorage
+	}
+	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
+		cfg.LogLevel = logLevel
 	}
 	err := cfg.Validate()
 	if err != nil {
