@@ -20,7 +20,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 	log.Println("Config:", cfg)
-	storage := repository.NewMemoryStorage()
+	storage := repository.NewMemoryStorage(cfg.StorageFile)
 	shortenService := service.NewShortener(storage)
 	handlers := handler.NewHandlers(shortenService, cfg.BaseURL)
 	r := handler.NewRouter(handlers)

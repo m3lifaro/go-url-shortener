@@ -11,25 +11,31 @@ import (
 )
 
 const (
-	defaultHost = ":8080"
-	defaultBase = "http://localhost:8080"
+	defaultHost        = ":8080"
+	defaultBase        = "http://localhost:8080"
+	defaultFileStorage = "database"
 )
 
 type Configuration struct {
 	ServeAddress string
 	BaseURL      string
+	StorageFile  string
 }
 
 func Load() (*Configuration, error) {
 	var cfg Configuration
 	flag.StringVar(&cfg.ServeAddress, "a", defaultHost, "Address to listen on")
 	flag.StringVar(&cfg.BaseURL, "b", defaultBase, "Base URL for shorted links")
+	flag.StringVar(&cfg.StorageFile, "f", defaultFileStorage, "File for links storage")
 	flag.Parse()
 	if serverAddr := os.Getenv("SERVER_ADDRESS"); serverAddr != "" {
 		cfg.ServeAddress = serverAddr
 	}
 	if baseURL := os.Getenv("BASE_URL"); baseURL != "" {
 		cfg.BaseURL = baseURL
+	}
+	if fileStorage := os.Getenv("FILE_STORAGE_PATH"); fileStorage != "" {
+		cfg.StorageFile = fileStorage
 	}
 	err := cfg.Validate()
 	if err != nil {
