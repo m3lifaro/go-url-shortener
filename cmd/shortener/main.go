@@ -24,11 +24,11 @@ func main() {
 	}
 
 	storage, err := repository.NewMemoryStorage(cfg.StorageFile)
-	defer storage.Close()
-
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
+	defer storage.Close()
+
 	shortenService := service.NewShortener(storage)
 	handlers := handler.NewHandlers(shortenService, cfg.BaseURL)
 	r := handler.NewRouter(handlers)
