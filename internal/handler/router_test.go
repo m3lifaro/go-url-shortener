@@ -6,6 +6,7 @@ import (
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -55,8 +56,9 @@ func TestRouter(t *testing.T) {
 		},
 	}
 
+	var zl = zap.NewNop()
 	var shortenService = service.NewShortener(mock)
-	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/")))
+	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", zl), zl))
 	defer ts.Close()
 	tests := []struct {
 		method         string

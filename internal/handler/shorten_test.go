@@ -4,6 +4,7 @@ import (
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"path"
@@ -26,7 +27,8 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 	}
 
 	var shortenService = service.NewShortener(mock)
-	var handler = NewShortenHandler(shortenService, "http://localhost:8080/")
+	var zl = zap.NewNop()
+	var handler = NewShortenHandler(shortenService, "http://localhost:8080/", zl)
 	var validHeader = "text/plain; charset=utf-8"
 	var invalidHeader = "application/json; charset=utf-8"
 	testCases := []struct {
@@ -39,7 +41,7 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 		{method: http.MethodGet, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodPut, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodDelete, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
-		{method: http.MethodPost, expectedCode: http.StatusNotAcceptable, expectedBody: "Unsupported Content-Type. Expected 'text/plain' or 'application/x-gzip', got: application/json", header: invalidHeader},
+		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported Content-Type. Expected 'text/plain' or 'application/x-gzip', got: application/json", header: invalidHeader},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed", header: validHeader},
 		{method: http.MethodPost, expectedCode: http.StatusCreated, header: validHeader, body: "ya.ru"},
 	}

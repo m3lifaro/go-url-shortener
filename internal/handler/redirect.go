@@ -2,23 +2,21 @@ package handler
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
-	"log"
 	"net/http"
 )
 
 type RedirectHandler struct {
 	service *service.Shortener
+	logger  *zap.Logger
 }
 
-func NewRedirectHandler(service *service.Shortener) *RedirectHandler {
-	return &RedirectHandler{service: service}
+func NewRedirectHandler(service *service.Shortener, logger *zap.Logger) *RedirectHandler {
+	return &RedirectHandler{service: service, logger: logger}
 }
 
 func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Println("[Redirect handler] Handle event")
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -27,7 +25,7 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "id")
 	url, exists, err := h.service.GetOriginal(key)
 	if err != nil {
-		logger.Log.Error("got error getting original",
+		h.logger.Error("got error getting original",
 			zap.Error(err),
 		)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -37,7 +35,9 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	log.Println("Redirecting to: " + url)
+	h.logger.Debug("Redirect to",
+		zap.String("url", url),
+	)
 
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)

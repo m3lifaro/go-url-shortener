@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"go.uber.org/zap"
 	"os"
@@ -23,9 +22,10 @@ type MemoryStorage struct {
 	cache    map[string]string
 	nextID   int
 	producer *Producer
+	logger   *zap.Logger
 }
 
-func NewMemoryStorage(fileName string) (Storage, error) {
+func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 	consumer, err := NewConsumer(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file consumer: %w", err)
@@ -40,7 +40,7 @@ func NewMemoryStorage(fileName string) (Storage, error) {
 	cache := make(map[string]string)
 	for _, v := range *events {
 		if e, exists := cache[v.ShortenURL]; exists {
-			logger.Log.Warn("got duplicated event",
+			logger.Warn("got duplicated event",
 				zap.String("shorten_url", v.ShortenURL),
 				zap.String("url", v.URL),
 				zap.String("already_presented_as", e),
@@ -65,6 +65,7 @@ func NewMemoryStorage(fileName string) (Storage, error) {
 		cache:    make(map[string]string),
 		nextID:   maxID + 1,
 		producer: producer,
+		logger:   logger,
 	}, nil
 }
 

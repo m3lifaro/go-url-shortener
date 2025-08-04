@@ -31,16 +31,16 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.StorageFile, "f", defaultFileStorage, "File for links storage")
 	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "Log level")
 	flag.Parse()
-	if serverAddr := os.Getenv("SERVER_ADDRESS"); serverAddr != "" {
+	if serverAddr, isPresent := os.LookupEnv("SERVER_ADDRESS"); isPresent {
 		cfg.ServeAddress = serverAddr
 	}
-	if baseURL := os.Getenv("BASE_URL"); baseURL != "" {
+	if baseURL, isPresent := os.LookupEnv("BASE_URL"); isPresent {
 		cfg.BaseURL = baseURL
 	}
-	if fileStorage := os.Getenv("FILE_STORAGE_PATH"); fileStorage != "" {
+	if fileStorage, isPresent := os.LookupEnv("FILE_STORAGE_PATH"); isPresent {
 		cfg.StorageFile = fileStorage
 	}
-	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
+	if logLevel, isPresent := os.LookupEnv("LOG_LEVEL"); isPresent {
 		cfg.LogLevel = logLevel
 	}
 	err := cfg.Validate()

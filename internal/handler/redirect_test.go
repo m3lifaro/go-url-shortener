@@ -5,6 +5,7 @@ import (
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,8 +24,9 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 		},
 	}
 
+	var zl = zap.NewNop()
 	var shortenService = service.NewShortener(mock)
-	var handler = NewRedirectHandler(shortenService)
+	var handler = NewRedirectHandler(shortenService, zl)
 	testCases := []struct {
 		method         string
 		url            string
