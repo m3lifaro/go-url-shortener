@@ -4,6 +4,7 @@ import (
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"path"
@@ -14,15 +15,20 @@ import (
 
 func TestShortenHandler_ServeHTTP(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) {
+		SetFunc: func(key, url string) error {
+			return nil
 		},
-		GetFunc: func(key string) (string, bool) {
-			return "https://ya.ru", true
+		GetFunc: func(key string) (string, bool, error) {
+			if key == "not_found" {
+				return "", false, nil
+			}
+			return "https://ya.ru", true, nil
 		},
 	}
 
 	var shortenService = service.NewShortener(mock)
-	var handler = NewShortenHandler(shortenService, "http://localhost:8080/")
+	var zl = zap.NewNop()
+	var handler = NewShortenHandler(shortenService, "http://localhost:8080/", zl)
 	var validHeader = "text/plain; charset=utf-8"
 	var invalidHeader = "application/json; charset=utf-8"
 	testCases := []struct {
@@ -35,7 +41,7 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 		{method: http.MethodGet, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodPut, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodDelete, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
-		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported Content-Type. Expected 'text/plain', got: application/json", header: invalidHeader},
+		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported Content-Type. Expected 'text/plain' or 'application/x-gzip', got: application/json", header: invalidHeader},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed", header: validHeader},
 		{method: http.MethodPost, expectedCode: http.StatusCreated, header: validHeader, body: "ya.ru"},
 	}

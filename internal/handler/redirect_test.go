@@ -5,6 +5,7 @@ import (
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,18 +13,20 @@ import (
 
 func TestRedirectHandler_ServeHTTP(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) {
+		SetFunc: func(key, url string) error {
+			return nil
 		},
-		GetFunc: func(key string) (string, bool) {
+		GetFunc: func(key string) (string, bool, error) {
 			if key == "not_found" {
-				return "", false
+				return "", false, nil
 			}
-			return "https://ya.ru", true
+			return "https://ya.ru", true, nil
 		},
 	}
 
+	var zl = zap.NewNop()
 	var shortenService = service.NewShortener(mock)
-	var handler = NewRedirectHandler(shortenService)
+	var handler = NewRedirectHandler(shortenService, zl)
 	testCases := []struct {
 		method         string
 		url            string
@@ -32,7 +35,7 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 		expectedHeader string
 	}{
 		{method: http.MethodGet, url: "ya", expectedCode: http.StatusTemporaryRedirect, expectedBody: "", expectedHeader: "https://ya.ru"},
-		{method: http.MethodGet, url: "not_found", expectedCode: http.StatusNotFound, expectedBody: "404 page not found\n"},
+		{method: http.MethodGet, url: "not_found", expectedCode: http.StatusNotFound, expectedBody: ""},
 		{method: http.MethodPut, url: "ya", expectedCode: http.StatusMethodNotAllowed, expectedBody: ""},
 		{method: http.MethodDelete, url: "ya", expectedCode: http.StatusMethodNotAllowed, expectedBody: ""},
 		{method: http.MethodPost, url: "ya", expectedCode: http.StatusMethodNotAllowed, expectedBody: ""},

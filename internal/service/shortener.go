@@ -25,7 +25,7 @@ func (s *Shortener) Shorten(url string) (string, error) {
 	return shortenURL, nil
 }
 
-func (s *Shortener) GetOriginal(key string) (string, bool) {
+func (s *Shortener) GetOriginal(key string) (string, bool, error) {
 	return s.storage.Get(key)
 }
 
