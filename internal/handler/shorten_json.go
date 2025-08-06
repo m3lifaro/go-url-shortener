@@ -33,7 +33,8 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&req); err != nil {
-		h.logger.Error("got error, while decoding HTTP request",
+		h.logger.Error(
+			"got error, while decoding HTTP request",
 			zap.Error(err),
 		)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -57,7 +58,8 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	shortedURL, err := h.service.Shorten(url)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.logger.Error("got error while shortening url",
+		h.logger.Error(
+			"got error while shortening url",
 			zap.Error(err),
 		)
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))

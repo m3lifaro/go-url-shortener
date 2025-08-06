@@ -25,7 +25,8 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "id")
 	url, exists, err := h.service.GetOriginal(key)
 	if err != nil {
-		h.logger.Error("got error getting original",
+		h.logger.Error(
+			"got error getting original",
 			zap.Error(err),
 		)
 		w.WriteHeader(http.StatusInternalServerError)

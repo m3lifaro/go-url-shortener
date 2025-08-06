@@ -51,7 +51,8 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	shortedURL, err := h.service.Shorten(url)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		h.logger.Error("got error while shortening url",
+		h.logger.Error(
+			"got error while shortening url",
 			zap.Error(err),
 		)
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
