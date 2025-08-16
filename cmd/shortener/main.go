@@ -1,13 +1,14 @@
 package main
 
 import (
+	"log"
+	"net/http"
+
 	"github.com/m3lifaro/go-url-shortener/cmd/config"
 	"github.com/m3lifaro/go-url-shortener/internal/handler"
 	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
-	"log"
-	"net/http"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 	defer storage.Close()
 
 	shortenService := service.NewShortener(storage)
-	handlers := handler.NewHandlers(shortenService, cfg.BaseURL, zl)
+	handlers := handler.NewHandlers(shortenService, cfg.BaseURL, cfg.DBDsn, zl)
 	r := handler.NewRouter(handlers, zl)
 	log.Printf("Server started on %s", cfg.ServeAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
