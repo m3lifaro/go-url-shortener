@@ -3,11 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"mime"
+	"net/http"
+
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
-	"mime"
-	"net/http"
 )
 
 const jsonContentType = "application/json"
