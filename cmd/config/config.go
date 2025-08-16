@@ -32,7 +32,7 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.BaseURL, "b", defaultBase, "Base URL for shorted links")
 	flag.StringVar(&cfg.StorageFile, "f", defaultFileStorage, "File for links storage")
 	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "Log level")
-	flag.StringVar(&cfg.LogLevel, "d", defaultDBDsn, "Database dsn")
+	flag.StringVar(&cfg.DBDsn, "d", defaultDBDsn, "Database dsn")
 	flag.Parse()
 	if serverAddr, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
 		cfg.ServeAddress = serverAddr
