@@ -46,6 +46,26 @@ func (s *PGStorage) Set(key, url string) error {
 	return nil
 }
 
+func (s *PGStorage) BatchSet(records map[string]string) error {
+	ctx := context.TODO()
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	for key, url := range records {
+		if _, err := tx.Exec(ctx,
+			"INSERT INTO shorten_links(short_url, original_url) VALUES ($1, $2)",
+			key, url,
+		); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (s *PGStorage) Close() error {
 	s.pool.Close()
 	return nil

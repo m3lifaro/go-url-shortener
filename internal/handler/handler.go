@@ -8,17 +8,19 @@ import (
 )
 
 type Handlers struct {
-	Shorten     http.HandlerFunc
-	Redirect    http.HandlerFunc
-	ShortenJSON http.HandlerFunc
-	Ping        http.HandlerFunc
+	Shorten      http.HandlerFunc
+	Redirect     http.HandlerFunc
+	ShortenJSON  http.HandlerFunc
+	BatchShorten http.HandlerFunc
+	Ping         http.HandlerFunc
 }
 
 func NewHandlers(svc *service.Shortener, baseURL string, dsn string, logger *zap.Logger) *Handlers {
 	return &Handlers{
-		Shorten:     NewShortenHandler(svc, baseURL, logger).ServeHTTP,
-		Redirect:    NewRedirectHandler(svc, logger).ServeHTTP,
-		ShortenJSON: NewShortenJSONHandler(svc, baseURL, logger).ServeHTTP,
-		Ping:        NewPingHandler(dsn, logger).ServeHTTP,
+		Shorten:      NewShortenHandler(svc, baseURL, logger).ServeHTTP,
+		Redirect:     NewRedirectHandler(svc, logger).ServeHTTP,
+		ShortenJSON:  NewShortenJSONHandler(svc, baseURL, logger).ServeHTTP,
+		BatchShorten: NewBatchShortenHandler(svc, baseURL, logger).ServeHTTP,
+		Ping:         NewPingHandler(dsn, logger).ServeHTTP,
 	}
 }

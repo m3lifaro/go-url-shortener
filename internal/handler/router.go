@@ -12,6 +12,7 @@ func NewRouter(h *Handlers, logger *zap.Logger) chi.Router {
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.Shorten)
 		r.Post("/api/shorten", h.ShortenJSON)
+		r.Post("/api/shorten/batch", h.BatchShorten)
 		r.Get("/ping", h.Ping)
 		r.Get("/{id}", h.Redirect)
 	})

@@ -1,8 +1,13 @@
 package repository
 
 type MockStorage struct {
-	GetFunc func(key string) (string, bool, error)
-	SetFunc func(key, url string) error
+	GetFunc      func(key string) (string, bool, error)
+	SetFunc      func(key, url string) error
+	BatchSetFunc func(records map[string]string) error
+}
+
+func (m *MockStorage) BatchSet(records map[string]string) error {
+	return m.BatchSetFunc(records)
 }
 
 func (m *MockStorage) Close() error {
