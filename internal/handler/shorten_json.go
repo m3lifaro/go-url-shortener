@@ -3,11 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"mime"
+	"net/http"
+
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
-	"mime"
-	"net/http"
 )
 
 const jsonContentType = "application/json"
@@ -55,7 +56,7 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Empty url not allowed"))
 		return
 	}
-	shortedURL, err := h.service.Shorten(url)
+	shortedURL, existedURL, err := h.service.Shorten(url)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.logger.Error(
@@ -65,15 +66,20 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 		return
 	}
+	w.Header().Set("Content-Type", jsonContentType)
+	if existedURL {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 	var respURL = fmt.Sprintf("%s%s", h.baseURL, shortedURL)
 	h.logger.Debug("Shorten params",
 		zap.String("url", url),
 		zap.String("shortedURL", respURL),
+		zap.Bool("existed", existedURL),
 	)
 
 	resp := model.ShortenResponse{Result: respURL}
-	w.Header().Set("Content-Type", jsonContentType)
-	w.WriteHeader(http.StatusCreated)
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(resp); err != nil {
 		h.logger.Debug("error encoding response", zap.Error(err))

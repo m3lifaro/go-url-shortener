@@ -14,7 +14,7 @@ import (
 
 type Storage interface {
 	Get(key string) (string, bool, error)
-	Set(key, url string) error
+	Set(key, url string) (string, error)
 	Close() error
 	BatchSet(records map[string]string) error
 }
@@ -78,23 +78,29 @@ func (s *MemoryStorage) Get(key string) (string, bool, error) {
 	return val, ok, nil
 }
 
-func (s *MemoryStorage) Set(key, value string) error {
+func (s *MemoryStorage) Set(key, value string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if _, exists := s.cache[key]; exists {
-		return fmt.Errorf("key %s already exists", key)
+		return "", fmt.Errorf("key %s already exists", key)
+	}
+
+	for k, v := range s.cache {
+		if v == value {
+			return k, nil
+		}
 	}
 
 	record := &model.ShortenRecord{ID: strconv.Itoa(s.nextID), URL: value, ShortenURL: key}
 
 	if err := s.producer.WriteEvent(record); err != nil {
-		return fmt.Errorf("failed to write event: %w", err)
+		return "", fmt.Errorf("failed to write event: %w", err)
 	}
 
 	s.cache[key] = value
 	s.nextID++
-	return nil
+	return "", nil
 }
 
 func (s *MemoryStorage) BatchSet(records map[string]string) error {

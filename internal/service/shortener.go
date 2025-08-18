@@ -19,16 +19,19 @@ func NewShortener(storage repository.Storage) *Shortener {
 	return &Shortener{storage: storage}
 }
 
-func (s *Shortener) Shorten(url string) (string, error) {
+func (s *Shortener) Shorten(url string) (shorten string, existed bool, err error) {
 	shortenURL, err := generateRandomString(defaultLength)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	err = s.storage.Set(shortenURL, url)
+	existedURL, err := s.storage.Set(shortenURL, url)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	return shortenURL, nil
+	if existedURL != "" {
+		return existedURL, true, nil
+	}
+	return shortenURL, false, nil
 }
 
 func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL string) ([]model.BatchResponseItem, error) {

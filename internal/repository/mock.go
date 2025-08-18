@@ -2,7 +2,7 @@ package repository
 
 type MockStorage struct {
 	GetFunc      func(key string) (string, bool, error)
-	SetFunc      func(key, url string) error
+	SetFunc      func(key, url string) (string, error)
 	BatchSetFunc func(records map[string]string) error
 }
 
@@ -18,6 +18,6 @@ func (m *MockStorage) Get(key string) (string, bool, error) {
 	return m.GetFunc(key)
 }
 
-func (m *MockStorage) Set(key, url string) error {
+func (m *MockStorage) Set(key, url string) (string, error) {
 	return m.SetFunc(key, url)
 }

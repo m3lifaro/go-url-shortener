@@ -16,8 +16,8 @@ import (
 
 func TestShortenHandler_ServeHTTP(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) error {
-			return nil
+		SetFunc: func(key, url string) (string, error) {
+			return "", nil
 		},
 		GetFunc: func(key string) (string, bool, error) {
 			if key == "not_found" {
