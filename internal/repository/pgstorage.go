@@ -38,14 +38,14 @@ func (s *PGStorage) Get(key string) (string, bool, error) {
 
 func (s *PGStorage) Set(key, url string) (string, error) {
 	ctx := context.TODO()
-	var existedUrl string
+	var existedURL string
 	var isNew bool
 	err := s.pool.QueryRow(ctx, `
 	   INSERT INTO shorten_links(short_url, original_url)
 	   VALUES ($1, $2)
 	   ON CONFLICT (original_url) DO UPDATE SET original_url = EXCLUDED.original_url -- фиктивное обновление
 	   RETURNING short_url, (xmax = 0) AS is_new
-	`, key, url).Scan(&existedUrl, &isNew)
+	`, key, url).Scan(&existedURL, &isNew)
 	//	err := s.pool.QueryRow(ctx, `
 	//    WITH insert_attempt AS (
 	//        INSERT INTO shorten_links (short_url, original_url)
@@ -64,7 +64,7 @@ func (s *PGStorage) Set(key, url string) (string, error) {
 		return "", err
 	}
 	if !isNew {
-		return existedUrl, nil
+		return existedURL, nil
 	}
 	return "", nil
 }
