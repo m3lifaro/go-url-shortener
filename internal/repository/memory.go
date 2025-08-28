@@ -40,17 +40,23 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 		return nil, fmt.Errorf("failed to read events from file(%s): %w", fileName, err)
 	}
 	maxID := 0
-	cache := make(map[string]string)
+	cache := make(map[string]map[string]string)
 	for _, v := range *events {
-		if e, exists := cache[v.ShortenURL]; exists {
-			logger.Warn("got duplicated event",
+		userCache, ok := cache[v.UserID]
+		if !ok {
+			userCache = make(map[string]string)
+			cache[v.UserID] = userCache
+		}
+		if e, exists := userCache[v.ShortenURL]; exists {
+			logger.Warn("got duplicated event for user",
+				zap.String("user_id", v.UserID),
 				zap.String("shorten_url", v.ShortenURL),
 				zap.String("url", v.URL),
 				zap.String("already_presented_as", e),
 			)
 			continue
 		}
-		cache[v.ShortenURL] = v.URL
+		userCache[v.ShortenURL] = v.URL
 		convertedID, err := strconv.Atoi(v.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ID: %w", err)
@@ -65,7 +71,7 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 		return nil, fmt.Errorf("failed to create producer: %w", err)
 	}
 	return &MemoryStorage{
-		cache:    make(map[string]map[string]string),
+		cache:    cache,
 		nextID:   maxID + 1,
 		producer: producer,
 		logger:   logger,
@@ -90,7 +96,7 @@ func (s *MemoryStorage) GetAll(userID string) ([]model.UserResponseItem, error) 
 	if !ok {
 		return []model.UserResponseItem{}, nil
 	}
-	response := make([]model.UserResponseItem, len(userCache))
+	response := make([]model.UserResponseItem, 0, len(userCache))
 	for k, v := range userCache {
 		response = append(response, model.UserResponseItem{
 			OriginalURL: v,
