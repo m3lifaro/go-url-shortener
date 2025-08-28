@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
@@ -14,14 +15,17 @@ import (
 
 func TestRedirectHandler_ServeHTTP(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) (string, error) {
+		SetFunc: func(key, url, userID string) (string, error) {
 			return "", nil
 		},
-		GetFunc: func(key string) (string, bool, error) {
+		GetFunc: func(key, userID string) (string, bool, error) {
 			if key == "not_found" {
 				return "", false, nil
 			}
 			return "https://ya.ru", true, nil
+		},
+		GetAllFunc: func(userID string) ([]model.UserResponseItem, error) {
+			return make([]model.UserResponseItem, 0), nil
 		},
 	}
 

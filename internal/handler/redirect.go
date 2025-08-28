@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 type RedirectHandler struct {
@@ -23,7 +25,10 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := chi.URLParam(r, "id")
-	url, exists, err := h.service.GetOriginal(key)
+	userID, _ := auth.GetUserID(r.Context())
+
+	//h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
+	url, exists, err := h.service.GetOriginal(key, userID)
 	if err != nil {
 		h.logger.Error(
 			"got error getting original",

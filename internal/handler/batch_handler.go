@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
@@ -50,8 +51,10 @@ func (h *BatchShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	}
+	userID, _ := auth.GetUserID(r.Context())
 
-	results, err := h.service.BatchShorten(batchReq, h.baseURL)
+	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
+	results, err := h.service.BatchShorten(batchReq, h.baseURL, userID)
 	if err != nil {
 		h.logger.Error("Failed to shorten batch request", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)

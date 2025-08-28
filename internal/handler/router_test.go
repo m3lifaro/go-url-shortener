@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
@@ -46,10 +47,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 
 func TestRouter(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) (string, error) {
+		SetFunc: func(key, url, userID string) (string, error) {
 			return "", nil
 		},
-		GetFunc: func(key string) (string, bool, error) {
+		GetFunc: func(key, userID string) (string, bool, error) {
 			if key == "not_found" {
 				return "", false, nil
 			}
@@ -59,7 +60,8 @@ func TestRouter(t *testing.T) {
 
 	var zl = zap.NewNop()
 	var shortenService = service.NewShortener(mock)
-	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", "", zl), zl))
+	var auz = auth.NewAuth("super_secret")
+	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", "", zl), zl, auz))
 	defer ts.Close()
 	tests := []struct {
 		method         string

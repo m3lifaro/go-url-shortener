@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
 )
@@ -49,7 +50,10 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Empty url not allowed"))
 		return
 	}
-	shortedURL, existedURL, err := h.service.Shorten(url)
+	userID, _ := auth.GetUserID(r.Context())
+
+	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
+	shortedURL, existedURL, err := h.service.Shorten(url, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		h.logger.Error(

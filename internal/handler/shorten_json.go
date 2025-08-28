@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
@@ -56,7 +57,10 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Empty url not allowed"))
 		return
 	}
-	shortedURL, existedURL, err := h.service.Shorten(url)
+	userID, _ := auth.GetUserID(r.Context())
+
+	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
+	shortedURL, existedURL, err := h.service.Shorten(url, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.logger.Error(
@@ -84,5 +88,31 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := enc.Encode(resp); err != nil {
 		h.logger.Debug("error encoding response", zap.Error(err))
 		return
+	}
+}
+
+func (h *ShortenJSONHandler) ServeUserHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, _ := auth.GetUserID(r.Context())
+
+	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
+	results, err := h.service.GetUserUrls(userID)
+	if err != nil {
+		h.logger.Error("Failed to process all user urls request", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if len(results) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.Header().Set("Content-Type", jsonContentType)
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		h.logger.Error("Failed to encode user all urls response", zap.Error(err))
 	}
 }

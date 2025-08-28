@@ -19,12 +19,12 @@ func NewShortener(storage repository.Storage) *Shortener {
 	return &Shortener{storage: storage}
 }
 
-func (s *Shortener) Shorten(url string) (shorten string, existed bool, err error) {
+func (s *Shortener) Shorten(url string, userID string) (shorten string, existed bool, err error) {
 	shortenURL, err := generateRandomString(defaultLength)
 	if err != nil {
 		return "", false, err
 	}
-	existedURL, err := s.storage.Set(shortenURL, url)
+	existedURL, err := s.storage.Set(shortenURL, url, userID)
 	if err != nil {
 		return "", false, err
 	}
@@ -34,7 +34,7 @@ func (s *Shortener) Shorten(url string) (shorten string, existed bool, err error
 	return shortenURL, false, nil
 }
 
-func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL string) ([]model.BatchResponseItem, error) {
+func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL, userID string) ([]model.BatchResponseItem, error) {
 	records := make(map[string]string)
 	response := make([]model.BatchResponseItem, 0, len(urls))
 
@@ -50,15 +50,19 @@ func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL string) 
 		})
 	}
 
-	if err := s.storage.BatchSet(records); err != nil {
+	if err := s.storage.BatchSet(records, userID); err != nil {
 		return nil, err
 	}
 
 	return response, nil
 }
 
-func (s *Shortener) GetOriginal(key string) (string, bool, error) {
-	return s.storage.Get(key)
+func (s *Shortener) GetOriginal(key, userID string) (string, bool, error) {
+	return s.storage.Get(key, userID)
+}
+
+func (s *Shortener) GetUserUrls(userID string) ([]model.UserResponseItem, error) {
+	return s.storage.GetAll(userID)
 }
 
 func generateRandomString(n int) (string, error) {
