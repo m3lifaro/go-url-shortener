@@ -2,16 +2,17 @@ package handler
 
 import (
 	"compress/gzip"
-	"github.com/m3lifaro/go-url-shortener/internal/repository"
-	"github.com/m3lifaro/go-url-shortener/internal/service"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/m3lifaro/go-url-shortener/internal/repository"
+	"github.com/m3lifaro/go-url-shortener/internal/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method,
@@ -45,8 +46,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 
 func TestRouter(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) error {
-			return nil
+		SetFunc: func(key, url string) (string, error) {
+			return "", nil
 		},
 		GetFunc: func(key string) (string, bool, error) {
 			if key == "not_found" {
@@ -58,7 +59,7 @@ func TestRouter(t *testing.T) {
 
 	var zl = zap.NewNop()
 	var shortenService = service.NewShortener(mock)
-	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", zl), zl))
+	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", "", zl), zl))
 	defer ts.Close()
 	tests := []struct {
 		method         string

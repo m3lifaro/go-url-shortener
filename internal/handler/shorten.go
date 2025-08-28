@@ -2,11 +2,12 @@ package handler
 
 import (
 	"fmt"
-	"github.com/m3lifaro/go-url-shortener/internal/service"
-	"go.uber.org/zap"
 	"io"
 	"mime"
 	"net/http"
+
+	"github.com/m3lifaro/go-url-shortener/internal/service"
+	"go.uber.org/zap"
 )
 
 const contentType = "text/plain"
@@ -48,7 +49,7 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Empty url not allowed"))
 		return
 	}
-	shortedURL, err := h.service.Shorten(url)
+	shortedURL, existedURL, err := h.service.Shorten(url)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		h.logger.Error(
@@ -58,13 +59,18 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 		return
 	}
+	w.Header().Set("Content-Type", contentType)
+	if existedURL {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 	var respURL = fmt.Sprintf("%s%s", h.baseURL, shortedURL)
 	h.logger.Debug("Shorten params",
 		zap.String("url", url),
 		zap.String("shortedURL", respURL),
+		zap.Bool("existed", existedURL),
 	)
 
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(respURL))
 }

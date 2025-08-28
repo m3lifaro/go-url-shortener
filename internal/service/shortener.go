@@ -3,6 +3,9 @@ package service
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
+
+	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 )
 
@@ -16,13 +19,42 @@ func NewShortener(storage repository.Storage) *Shortener {
 	return &Shortener{storage: storage}
 }
 
-func (s *Shortener) Shorten(url string) (string, error) {
+func (s *Shortener) Shorten(url string) (shorten string, existed bool, err error) {
 	shortenURL, err := generateRandomString(defaultLength)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	s.storage.Set(shortenURL, url)
-	return shortenURL, nil
+	existedURL, err := s.storage.Set(shortenURL, url)
+	if err != nil {
+		return "", false, err
+	}
+	if existedURL != "" {
+		return existedURL, true, nil
+	}
+	return shortenURL, false, nil
+}
+
+func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL string) ([]model.BatchResponseItem, error) {
+	records := make(map[string]string)
+	response := make([]model.BatchResponseItem, 0, len(urls))
+
+	for _, item := range urls {
+		shortURL, err := generateRandomString(defaultLength)
+		if err != nil {
+			return nil, err
+		}
+		records[shortURL] = item.OriginalURL
+		response = append(response, model.BatchResponseItem{
+			CorrelationID: item.CorrelationID,
+			ShortURL:      fmt.Sprintf("%s%s", baseURL, shortURL),
+		})
+	}
+
+	if err := s.storage.BatchSet(records); err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (s *Shortener) GetOriginal(key string) (string, bool, error) {

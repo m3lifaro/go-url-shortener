@@ -1,20 +1,21 @@
 package handler
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestRedirectHandler_ServeHTTP(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) error {
-			return nil
+		SetFunc: func(key, url string) (string, error) {
+			return "", nil
 		},
 		GetFunc: func(key string) (string, bool, error) {
 			if key == "not_found" {

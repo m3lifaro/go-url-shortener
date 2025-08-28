@@ -4,17 +4,19 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/m3lifaro/go-url-shortener/internal/model"
-	"go.uber.org/zap"
 	"os"
 	"strconv"
 	"sync"
+
+	"github.com/m3lifaro/go-url-shortener/internal/model"
+	"go.uber.org/zap"
 )
 
 type Storage interface {
 	Get(key string) (string, bool, error)
-	Set(key, url string) error
+	Set(key, url string) (string, error)
 	Close() error
+	BatchSet(records map[string]string) error
 }
 
 type MemoryStorage struct {
@@ -76,24 +78,62 @@ func (s *MemoryStorage) Get(key string) (string, bool, error) {
 	return val, ok, nil
 }
 
-func (s *MemoryStorage) Set(key, value string) error {
+func (s *MemoryStorage) Set(key, value string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if _, exists := s.cache[key]; exists {
-		return fmt.Errorf("key %s already exists", key)
+		return "", fmt.Errorf("key %s already exists", key)
+	}
+
+	for k, v := range s.cache {
+		if v == value {
+			return k, nil
+		}
 	}
 
 	record := &model.ShortenRecord{ID: strconv.Itoa(s.nextID), URL: value, ShortenURL: key}
 
 	if err := s.producer.WriteEvent(record); err != nil {
-		return fmt.Errorf("failed to write event: %w", err)
+		return "", fmt.Errorf("failed to write event: %w", err)
 	}
 
 	s.cache[key] = value
 	s.nextID++
+	return "", nil
+}
+
+func (s *MemoryStorage) BatchSet(records map[string]string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for key := range records {
+		if _, exists := s.cache[key]; exists {
+			return fmt.Errorf("key %s already exists", key)
+		}
+	}
+
+	var events []*model.ShortenRecord
+	for key, value := range records {
+		events = append(events, &model.ShortenRecord{
+			ID:         strconv.Itoa(s.nextID),
+			URL:        value,
+			ShortenURL: key,
+		})
+		s.nextID++
+	}
+
+	if err := s.producer.WriteEvents(events); err != nil {
+		return fmt.Errorf("batch write failed: %w", err)
+	}
+
+	for key, value := range records {
+		s.cache[key] = value
+	}
+
 	return nil
 }
+
 func (s *MemoryStorage) Close() error {
 	return s.producer.Close()
 }
@@ -130,6 +170,29 @@ func (p *Producer) WriteEvent(event *model.ShortenRecord) error {
 	}
 
 	return p.writer.Flush()
+}
+
+func (p *Producer) WriteEvents(events []*model.ShortenRecord) error {
+	for _, event := range events {
+		data, err := json.Marshal(event)
+		if err != nil {
+			return fmt.Errorf("failed to marshal event: %w", err)
+		}
+
+		if _, err := p.writer.Write(data); err != nil {
+			return fmt.Errorf("failed to write event data: %w", err)
+		}
+
+		if err := p.writer.WriteByte('\n'); err != nil {
+			return fmt.Errorf("failed to write newline: %w", err)
+		}
+	}
+
+	if err := p.writer.Flush(); err != nil {
+		return fmt.Errorf("failed to flush buffer: %w", err)
+	}
+
+	return nil
 }
 
 type Consumer struct {
