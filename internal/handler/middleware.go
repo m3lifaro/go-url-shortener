@@ -155,46 +155,40 @@ func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handle
 			ctx = context.WithValue(ctx, auth.HasAuthKey, hasAuth)
 			ctx = context.WithValue(ctx, auth.ShouldSetCookieKey, !hasAuth)
 
-			// Создаем кастомный ResponseWriter
-			rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+			token, err := auz.GenerateJWT(userID)
+			if err == nil {
+				logger.Debug("got auth response",
+					zap.String("user_id", userID))
+			}
+			if err != nil {
+				logger.Error("got auth error",
+					zap.Error(err))
+			}
+			rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, token: token, shouldSetCookie: !hasAuth}
 
 			next.ServeHTTP(rw, r.WithContext(ctx))
-
-			// Устанавливаем куку если нужно и запрос успешный
-			if shouldSet, ok := ctx.Value(auth.ShouldSetCookieKey).(bool); ok && shouldSet && rw.statusCode < 400 {
-				token, err := auz.GenerateJWT(userID)
-				if err == nil {
-					logger.Debug("got auth response",
-						zap.String("user_id", userID))
-					setJWTCookie(w, token)
-				}
-				if err != nil {
-					logger.Error("got auth error",
-						zap.Error(err))
-				}
-			}
 		})
 	}
 }
 
-func setJWTCookie(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:  auth.CookieName,
-		Value: token,
-		//Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true, // Важно для безопасности!
-		//Secure:   true, // Только HTTPS в проде
-		SameSite: http.SameSiteStrictMode,
-		//Path:     "/",
-	})
-}
-
 type responseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode      int
+	cookie          *http.Cookie
+	shouldSetCookie bool
+	token           string
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
+	if rw.shouldSetCookie && (rw.statusCode < 400 || rw.statusCode == 409) {
+		http.SetCookie(rw, &http.Cookie{
+			Name:  auth.CookieName,
+			Value: rw.token,
+			//HttpOnly: true,
+			//SameSite: http.SameSiteStrictMode,
+		})
+	}
+
 	rw.ResponseWriter.WriteHeader(code)
 }

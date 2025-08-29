@@ -2,6 +2,7 @@ package handler
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -45,6 +46,26 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 	return resp, string(respBody)
 }
 
+func hasCookie(resp *http.Response, cookieName string) bool {
+	cookies := resp.Cookies()
+	for _, cookie := range cookies {
+		if cookie.Name == cookieName {
+			fmt.Printf("  Name: %s\n", cookie.Name)
+			fmt.Printf("  Value: %s\n", cookie.Value)
+			fmt.Printf("  Path: %s\n", cookie.Path)
+			fmt.Printf("  Domain: %s\n", cookie.Domain)
+			fmt.Printf("  Expires: %s\n", cookie.Expires)
+			fmt.Printf("  MaxAge: %d\n", cookie.MaxAge)
+			fmt.Printf("  Secure: %t\n", cookie.Secure)
+			fmt.Printf("  HttpOnly: %t\n", cookie.HttpOnly)
+			fmt.Printf("  SameSite: %v\n", cookie.SameSite)
+			fmt.Println()
+			return true
+		}
+	}
+	return false
+}
+
 func TestRouter(t *testing.T) {
 	mock := &repository.MockStorage{
 		SetFunc: func(key, url, userID string) (string, error) {
@@ -57,8 +78,10 @@ func TestRouter(t *testing.T) {
 			return "https://ya.ru", true, nil
 		},
 	}
-
-	var zl = zap.NewNop()
+	lvl, _ := zap.ParseAtomicLevel("DEBUG")
+	cfg := zap.NewProductionConfig()
+	cfg.Level = lvl
+	zl, _ := cfg.Build()
 	var shortenService = service.NewShortener(mock)
 	var auz = auth.NewAuth("super_secret")
 	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", "", zl), zl, auz))
@@ -71,6 +94,7 @@ func TestRouter(t *testing.T) {
 		expectedHeader []string
 		body           io.Reader
 		contentType    string
+		shouldHaveAuth bool
 	}{
 		{method: http.MethodGet, url: "/ya", expectedCode: http.StatusOK},
 		{method: http.MethodGet, url: "/not_found", expectedCode: http.StatusNotFound},
@@ -78,8 +102,8 @@ func TestRouter(t *testing.T) {
 		{method: http.MethodDelete, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodPost, url: "/ya", expectedCode: http.StatusMethodNotAllowed},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed"},
-		{method: http.MethodPost, expectedCode: http.StatusCreated, body: strings.NewReader("ya.ru"), expectedHeader: []string{"Content-Type", "text/plain"}},
-		{method: http.MethodPost, url: "/api/shorten", expectedCode: http.StatusCreated, body: strings.NewReader(`{"url": "ya.ru"}`), contentType: "application/json", expectedHeader: []string{"Content-Type", "application/json"}},
+		{method: http.MethodPost, expectedCode: http.StatusCreated, body: strings.NewReader("ya.ru"), expectedHeader: []string{"Content-Type", "text/plain"}, shouldHaveAuth: true},
+		{method: http.MethodPost, url: "/api/shorten", expectedCode: http.StatusCreated, body: strings.NewReader(`{"url": "ya.ru"}`), contentType: "application/json", expectedHeader: []string{"Content-Type", "application/json"}, shouldHaveAuth: true},
 	}
 	for _, v := range tests {
 		requestCT := "text/plain"
@@ -87,6 +111,9 @@ func TestRouter(t *testing.T) {
 			requestCT = v.contentType
 		}
 		resp, body := testRequest(t, ts, v.method, v.url, requestCT, v.body)
+		if (v.expectedCode < 400) || (v.expectedCode == 409) {
+			assert.Equal(t, v.shouldHaveAuth, hasCookie(resp, auth.CookieName))
+		}
 		_ = resp.Body.Close()
 		if v.expectedHeader != nil {
 			assert.Equal(t, v.expectedHeader[1], resp.Header.Get(v.expectedHeader[0]), "Значение хидера не совпадает с ожидаемым")
