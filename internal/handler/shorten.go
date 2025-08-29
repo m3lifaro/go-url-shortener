@@ -34,24 +34,29 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	contentHeader := r.Header.Get("Content-Type")
-	mediaType, _, err := mime.ParseMediaType(contentHeader)
-	url := string(body)
-
-	if err != nil || (mediaType != "text/plain" && mediaType != "application/x-gzip") {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain' or 'application/x-gzip', got: " + mediaType))
-		return
-	}
 	defer r.Body.Close()
 
+	contentHeader := r.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(contentHeader)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Invalid Content-Type header"))
+		return
+	}
+
+	if mediaType != "text/plain" && mediaType != "application/x-gzip" && mediaType != "plain/text" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain', 'plain/text' or 'application/x-gzip', got: " + mediaType))
+		return
+	}
+
+	url := string(body)
 	if len(url) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Empty url not allowed"))
 		return
 	}
 	userID, _ := auth.GetUserID(r.Context())
-
 	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
 	shortedURL, existedURL, err := h.service.Shorten(url, userID)
 	if err != nil {
