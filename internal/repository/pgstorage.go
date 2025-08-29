@@ -85,7 +85,7 @@ func (s *PGStorage) Set(key, url, userID string) (string, error) {
 	err := s.pool.QueryRow(ctx, `
 	   INSERT INTO shorten_links(short_url, original_url, user_id)
 	   VALUES ($1, $2, $3)
-	   ON CONFLICT (original_url, user_id) DO UPDATE SET original_url = EXCLUDED.original_url -- фиктивное обновление
+	   ON CONFLICT (original_url) DO UPDATE SET original_url = EXCLUDED.original_url -- фиктивное обновление
 	   RETURNING short_url, (xmax = 0) AS is_new
 	`, key, url, userID).Scan(&existedURL, &isNew)
 
