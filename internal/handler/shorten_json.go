@@ -101,6 +101,9 @@ func (h *ShortenJSONHandler) ServeUserHTTP(w http.ResponseWriter, r *http.Reques
 
 	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
 	results, err := h.service.GetUserUrls(userID)
+	for _, result := range results {
+		result.ShortURL = fmt.Sprintf("%s%s", h.baseURL, result.ShortURL)
+	}
 	if err != nil {
 		h.logger.Error("Failed to process all user urls request", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
