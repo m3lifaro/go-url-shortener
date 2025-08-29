@@ -139,6 +139,10 @@ func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handle
 				claims, err := auz.ParseJWT(cookie.Value)
 				if err == nil {
 					userID = claims.UUID
+					if userID == "" {
+						w.WriteHeader(http.StatusUnauthorized)
+						return
+					}
 					hasAuth = true
 				} else {
 					logger.Debug("got error parsing cookie", zap.Error(err), zap.String("cookie", cookie.Value))

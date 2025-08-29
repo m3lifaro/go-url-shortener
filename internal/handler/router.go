@@ -27,7 +27,7 @@ func NewRouter(h *Handlers, logger *zap.Logger, auth *auth.Auth) chi.Router {
 
 	// Routes with required auth
 	r.Group(func(r chi.Router) {
-		r.Use(authMiddleware(logger, auth))
+		r.Use(authMiddlewareOptional(logger, auth))
 
 		r.Route("/api/user", func(r chi.Router) {
 			r.Get("/urls", h.User)
