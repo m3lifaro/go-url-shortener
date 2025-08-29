@@ -4,7 +4,7 @@ import "github.com/m3lifaro/go-url-shortener/internal/model"
 
 type MockStorage struct {
 	GetFunc      func(key, userID string) (string, bool, error)
-	GetAllFunc   func(userID string) ([]model.UserResponseItem, error)
+	GetAllFunc   func(userID string) ([]model.UserLinkDto, error)
 	SetFunc      func(key, url, userID string) (string, error)
 	BatchSetFunc func(records map[string]string, userID string) error
 }
@@ -20,7 +20,7 @@ func (m *MockStorage) Close() error {
 func (m *MockStorage) Get(key, userID string) (string, bool, error) {
 	return m.GetFunc(key, userID)
 }
-func (m *MockStorage) GetAll(userID string) ([]model.UserResponseItem, error) {
+func (m *MockStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
 	return m.GetAllFunc(userID)
 }
 

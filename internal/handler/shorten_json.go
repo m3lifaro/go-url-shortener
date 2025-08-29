@@ -100,20 +100,17 @@ func (h *ShortenJSONHandler) ServeUserHTTP(w http.ResponseWriter, r *http.Reques
 	userID, _ := auth.GetUserID(r.Context())
 
 	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
-	results, err := h.service.GetUserUrls(userID)
-	for _, result := range results {
-		result.ShortURL = fmt.Sprintf("%s%s", h.baseURL, result.ShortURL)
-	}
+	results, err := h.service.GetUserUrls(userID, h.baseURL)
 	if err != nil {
 		h.logger.Error("Failed to process all user urls request", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", jsonContentType)
 	if len(results) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	w.Header().Set("Content-Type", jsonContentType)
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(results); err != nil {
 		h.logger.Error("Failed to encode user all urls response", zap.Error(err))

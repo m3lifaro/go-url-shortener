@@ -14,7 +14,7 @@ import (
 
 type Storage interface {
 	Get(key, userID string) (string, bool, error)
-	GetAll(userID string) ([]model.UserResponseItem, error)
+	GetAll(userID string) ([]model.UserLinkDto, error)
 	Set(key, url, userID string) (string, error)
 	Close() error
 	BatchSet(records map[string]string, userID string) error
@@ -94,16 +94,16 @@ func (s *MemoryStorage) Get(key, userID string) (string, bool, error) {
 	return val, ok, nil
 }
 
-func (s *MemoryStorage) GetAll(userID string) ([]model.UserResponseItem, error) {
+func (s *MemoryStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	userCache, ok := s.cache[userID]
 	if !ok {
-		return []model.UserResponseItem{}, nil
+		return []model.UserLinkDto{}, nil
 	}
-	response := make([]model.UserResponseItem, 0, len(userCache))
+	response := make([]model.UserLinkDto, 0, len(userCache))
 	for k, v := range userCache {
-		response = append(response, model.UserResponseItem{
+		response = append(response, model.UserLinkDto{
 			OriginalURL: v,
 			ShortURL:    k,
 		})

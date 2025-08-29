@@ -24,8 +24,8 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 			}
 			return "https://ya.ru", true, nil
 		},
-		GetAllFunc: func(userID string) ([]model.UserResponseItem, error) {
-			return make([]model.UserResponseItem, 0), nil
+		GetAllFunc: func(userID string) ([]model.UserLinkDto, error) {
+			return make([]model.UserLinkDto, 0), nil
 		},
 	}
 

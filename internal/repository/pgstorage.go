@@ -37,7 +37,7 @@ func (s *PGStorage) Get(key, userID string) (string, bool, error) {
 	}
 	return value, true, nil
 }
-func (s *PGStorage) GetAll(userID string) ([]model.UserResponseItem, error) {
+func (s *PGStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
 	ctx := context.TODO()
 
 	rows, err := s.pool.Query(ctx, `
@@ -56,9 +56,9 @@ func (s *PGStorage) GetAll(userID string) ([]model.UserResponseItem, error) {
 	}
 	defer rows.Close()
 
-	var links []model.UserResponseItem
+	var links []model.UserLinkDto
 	for rows.Next() {
-		var link model.UserResponseItem
+		var link model.UserLinkDto
 		err := rows.Scan(
 			&link.ShortURL,
 			&link.OriginalURL,

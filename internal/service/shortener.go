@@ -61,8 +61,19 @@ func (s *Shortener) GetOriginal(key, userID string) (string, bool, error) {
 	return s.storage.Get(key, userID)
 }
 
-func (s *Shortener) GetUserUrls(userID string) ([]model.UserResponseItem, error) {
-	return s.storage.GetAll(userID)
+func (s *Shortener) GetUserUrls(userID string, baseURL string) ([]model.UserResponseItem, error) {
+	dtos, err := s.storage.GetAll(userID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting shortener urls by user(%s): %w", userID, err)
+	}
+	response := make([]model.UserResponseItem, 0, len(dtos))
+	for _, result := range dtos {
+		response = append(response, model.UserResponseItem{
+			OriginalURL: result.OriginalURL,
+			ShortURL:    fmt.Sprintf("%s%s", baseURL, result.ShortURL),
+		})
+	}
+	return response, nil
 }
 
 func generateRandomString(n int) (string, error) {
