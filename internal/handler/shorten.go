@@ -74,6 +74,7 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		zap.String("url", url),
 		zap.String("shortedURL", respURL),
 		zap.Bool("existed", existedURL),
+		zap.String("user_id", userID),
 	)
 
 	w.Write([]byte(respURL))
