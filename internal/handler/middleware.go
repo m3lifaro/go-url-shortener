@@ -179,13 +179,13 @@ func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handle
 
 func setJWTCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "auth_token",
-		Value:    token,
-		Expires:  time.Now().Add(24 * time.Hour),
+		Name:  auth.CookieName,
+		Value: token,
+		//Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true, // Важно для безопасности!
-		Secure:   true, // Только HTTPS в проде
+		//Secure:   true, // Только HTTPS в проде
 		SameSite: http.SameSiteStrictMode,
-		Path:     "/",
+		//Path:     "/",
 	})
 }
 
