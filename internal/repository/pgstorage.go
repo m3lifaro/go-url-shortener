@@ -25,7 +25,8 @@ func NewPGStorage(pool *pgxpool.Pool, logger *zap.Logger) *PGStorage {
 func (s *PGStorage) Get(key, userID string) (string, bool, error) {
 	ctx := context.TODO()
 	var value string
-	err := s.pool.QueryRow(ctx, "select original_url from shorten_links where short_url=$1 and user_id=$2", key, userID).Scan(&value)
+	err := s.pool.QueryRow(ctx, "select original_url from shorten_links where short_url=$1", key).Scan(&value)
+	//err := s.pool.QueryRow(ctx, "select original_url from shorten_links where short_url=$1 and user_id=$2", key, userID).Scan(&value)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", false, nil

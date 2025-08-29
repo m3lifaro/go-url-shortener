@@ -23,6 +23,7 @@ type Storage interface {
 type MemoryStorage struct {
 	mu       sync.RWMutex
 	cache    map[string]map[string]string
+	linkMap  map[string]string
 	nextID   int
 	producer *Producer
 	logger   *zap.Logger
@@ -41,6 +42,7 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 	}
 	maxID := 0
 	cache := make(map[string]map[string]string)
+	linkMap := make(map[string]string)
 	for _, v := range *events {
 		userCache, ok := cache[v.UserID]
 		if !ok {
@@ -57,6 +59,7 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 			continue
 		}
 		userCache[v.ShortenURL] = v.URL
+		linkMap[v.ShortenURL] = v.URL
 		convertedID, err := strconv.Atoi(v.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ID: %w", err)
@@ -72,6 +75,7 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 	}
 	return &MemoryStorage{
 		cache:    cache,
+		linkMap:  linkMap,
 		nextID:   maxID + 1,
 		producer: producer,
 		logger:   logger,
@@ -81,11 +85,12 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 func (s *MemoryStorage) Get(key, userID string) (string, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	userCache, ok := s.cache[userID]
-	if !ok {
-		return "", false, nil
-	}
-	val, ok := userCache[key]
+	//userCache, ok := s.cache[userID]
+	//if !ok {
+	//	return "", false, nil
+	//}
+	val, ok := s.linkMap[key]
+	//val, ok := userCache[key]
 	return val, ok, nil
 }
 
