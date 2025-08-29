@@ -136,6 +136,7 @@ func (s *MemoryStorage) Set(key, value, userID string) (string, error) {
 	}
 
 	userCache[key] = value
+	s.linkMap[key] = value
 	s.nextID++
 	return "", nil
 }
