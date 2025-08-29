@@ -165,7 +165,7 @@ func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handle
 				token, err := auz.GenerateJWT(userID)
 				if err == nil {
 					logger.Debug("got auth response",
-						zap.String("token", token))
+						zap.String("user_id", userID))
 					setJWTCookie(w, token)
 				}
 				if err != nil {

@@ -27,7 +27,7 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "id")
 	userID, _ := auth.GetUserID(r.Context())
 
-	//h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
+	h.logger.Debug("Shorten redirect request details", zap.String("user_id", userID))
 	url, exists, err := h.service.GetOriginal(key, userID)
 	if err != nil {
 		h.logger.Error(
