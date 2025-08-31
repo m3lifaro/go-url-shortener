@@ -18,11 +18,11 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 		SetFunc: func(key, url, userID string) (string, error) {
 			return "", nil
 		},
-		GetFunc: func(key, userID string) (string, bool, error) {
+		GetFunc: func(key, userID string) (original string, existed bool, isDeleted bool, error error) {
 			if key == "not_found" {
-				return "", false, nil
+				return "", false, false, nil
 			}
-			return "https://ya.ru", true, nil
+			return "https://ya.ru", true, false, nil
 		},
 		GetAllFunc: func(userID string) ([]model.UserLinkDto, error) {
 			return make([]model.UserLinkDto, 0), nil

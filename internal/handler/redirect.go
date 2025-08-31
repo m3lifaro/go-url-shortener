@@ -28,7 +28,7 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.GetUserID(r.Context())
 
 	h.logger.Debug("Shorten redirect request details", zap.String("user_id", userID))
-	url, exists, err := h.service.GetOriginal(key, userID)
+	url, exists, deleted, err := h.service.GetOriginal(key, userID)
 	if err != nil {
 		h.logger.Error(
 			"got error getting original",
@@ -39,6 +39,10 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if !exists {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if deleted {
+		w.WriteHeader(http.StatusGone)
 		return
 	}
 	h.logger.Debug("Redirect to",

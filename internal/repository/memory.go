@@ -13,11 +13,12 @@ import (
 )
 
 type Storage interface {
-	Get(key, userID string) (string, bool, error)
+	Get(key, userID string) (original string, existed bool, isDeleted bool, error error)
 	GetAll(userID string) ([]model.UserLinkDto, error)
 	Set(key, url, userID string) (string, error)
 	Close() error
 	BatchSet(records map[string]string, userID string) error
+	BatchDelete(records []string, userID string) error
 }
 
 type MemoryStorage struct {
@@ -82,7 +83,7 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 	}, nil
 }
 
-func (s *MemoryStorage) Get(key, userID string) (string, bool, error) {
+func (s *MemoryStorage) Get(key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	//userCache, ok := s.cache[userID]
@@ -91,7 +92,7 @@ func (s *MemoryStorage) Get(key, userID string) (string, bool, error) {
 	//}
 	val, ok := s.linkMap[key]
 	//val, ok := userCache[key]
-	return val, ok, nil
+	return val, ok, isDeleted, nil
 }
 
 func (s *MemoryStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
@@ -173,6 +174,26 @@ func (s *MemoryStorage) BatchSet(records map[string]string, userID string) error
 	for key, value := range records {
 		userCache[key] = value
 	}
+
+	return nil
+}
+
+func (s *MemoryStorage) BatchDelete(records []string, userID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	userCache, ok := s.cache[userID]
+	if !ok {
+		return nil
+	}
+
+	for _, key := range records {
+		if _, exists := userCache[key]; exists {
+			delete(userCache, key)
+		}
+	}
+
+	s.cache[userID] = userCache
 
 	return nil
 }

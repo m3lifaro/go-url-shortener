@@ -57,7 +57,7 @@ func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL, userID 
 	return response, nil
 }
 
-func (s *Shortener) GetOriginal(key, userID string) (string, bool, error) {
+func (s *Shortener) GetOriginal(key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	return s.storage.Get(key, userID)
 }
 
@@ -83,4 +83,12 @@ func generateRandomString(n int) (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b)[:n], nil
+}
+
+func (s *Shortener) DeleteUserUrls(userID string, linksRoDelete []string) error {
+	err := s.storage.BatchDelete(linksRoDelete, userID)
+	if err != nil {
+		return fmt.Errorf("error delete shorten urls by user(%s): %w", userID, err)
+	}
+	return nil
 }

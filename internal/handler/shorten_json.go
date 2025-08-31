@@ -116,3 +116,55 @@ func (h *ShortenJSONHandler) ServeUserHTTP(w http.ResponseWriter, r *http.Reques
 		h.logger.Error("Failed to encode user all urls response", zap.Error(err))
 	}
 }
+
+func (h *ShortenJSONHandler) ServeDeleteHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, _ := auth.GetUserID(r.Context())
+
+	h.logger.Info("Delete cookie context", zap.String("user_id", userID))
+	var req []string
+
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&req); err != nil {
+		h.logger.Error(
+			"got error, while decoding HTTP request",
+			zap.Error(err),
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	contentHeader := r.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(contentHeader)
+	if err != nil || mediaType != jsonContentType {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unsupported Content-Type. Expected 'application/json', got: " + mediaType))
+		return
+	}
+	defer r.Body.Close()
+
+	if len(req) == 0 {
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+	err = h.service.DeleteUserUrls(userID, req)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.logger.Error(
+			"got error while shortening url",
+			zap.Error(err),
+		)
+		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	w.Header().Set("Content-Type", jsonContentType)
+	w.WriteHeader(http.StatusAccepted)
+	h.logger.Debug("Shorten links deleted", zap.Strings("urls", req),
+		zap.String("userID", userID),
+	)
+	return
+}

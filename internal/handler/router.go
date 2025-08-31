@@ -31,7 +31,7 @@ func NewRouter(h *Handlers, logger *zap.Logger, auth *auth.Auth) chi.Router {
 
 		r.Route("/api/user", func(r chi.Router) {
 			r.Get("/urls", h.User)
-
+			r.Delete("/urls", h.Delete)
 		})
 	})
 

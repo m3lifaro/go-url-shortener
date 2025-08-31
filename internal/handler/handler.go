@@ -12,6 +12,7 @@ type Handlers struct {
 	Redirect     http.HandlerFunc
 	ShortenJSON  http.HandlerFunc
 	User         http.HandlerFunc
+	Delete       http.HandlerFunc
 	BatchShorten http.HandlerFunc
 	Ping         http.HandlerFunc
 }
@@ -22,6 +23,7 @@ func NewHandlers(svc *service.Shortener, baseURL string, dsn string, logger *zap
 		Redirect:     NewRedirectHandler(svc, logger).ServeHTTP,
 		ShortenJSON:  NewShortenJSONHandler(svc, baseURL, logger).ServeHTTP,
 		User:         NewShortenJSONHandler(svc, baseURL, logger).ServeUserHTTP,
+		Delete:       NewShortenJSONHandler(svc, baseURL, logger).ServeDeleteHTTP,
 		BatchShorten: NewBatchShortenHandler(svc, baseURL, logger).ServeHTTP,
 		Ping:         NewPingHandler(dsn, logger).ServeHTTP,
 	}
