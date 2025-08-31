@@ -188,9 +188,9 @@ func (s *MemoryStorage) BatchDelete(records []string, userID string) error {
 	}
 
 	for _, key := range records {
-		if _, exists := userCache[key]; exists {
-			delete(userCache, key)
-		}
+		//if _, exists := userCache[key]; exists {
+		delete(userCache, key)
+		//}
 	}
 
 	s.cache[userID] = userCache
