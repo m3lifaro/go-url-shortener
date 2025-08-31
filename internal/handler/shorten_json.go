@@ -166,5 +166,4 @@ func (h *ShortenJSONHandler) ServeDeleteHTTP(w http.ResponseWriter, r *http.Requ
 	h.logger.Debug("Shorten links deleted", zap.Strings("urls", req),
 		zap.String("userID", userID),
 	)
-	return
 }
