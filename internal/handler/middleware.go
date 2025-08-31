@@ -135,7 +135,6 @@ func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handle
 			var hasAuth bool
 
 			cookie, err := r.Cookie(auth.CookieName)
-			println(cookie.Value)
 			if err == nil {
 				claims, err := auz.ParseJWT(cookie.Value)
 				if err == nil {
