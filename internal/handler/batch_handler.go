@@ -53,7 +53,6 @@ func (h *BatchShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 	userID, _ := auth.GetUserID(r.Context())
 
-	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
 	results, err := h.service.BatchShorten(batchReq, h.baseURL, userID)
 	if err != nil {
 		h.logger.Error("Failed to shorten batch request", zap.Error(err))

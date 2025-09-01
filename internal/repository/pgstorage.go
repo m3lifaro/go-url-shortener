@@ -25,10 +25,8 @@ func NewPGStorage(pool *pgxpool.Pool, logger *zap.Logger) *PGStorage {
 
 func (s *PGStorage) Get(key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	ctx := context.TODO()
-	println("11111")
 	var value string
 	err := s.pool.QueryRow(ctx, "select original_url, is_deleted from shorten_links where short_url=$1", key).Scan(&value, &isDeleted)
-	//err := s.pool.QueryRow(ctx, "select original_url from shorten_links where short_url=$1 and user_id=$2", key, userID).Scan(&value)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", false, isDeleted, nil
@@ -124,13 +122,11 @@ func (s *PGStorage) BatchSet(records map[string]string, userID string) error {
 func (s *PGStorage) BatchDelete(records []string, userID string) error {
 	ctx := context.TODO()
 
-	// Создаем SQL запрос с правильным синтаксисом для массива
 	query := `
         UPDATE shorten_links 
         SET is_deleted = true 
         WHERE user_id = $1 AND short_url = ANY($2)`
 
-	// Выполняем запрос
 	_, err := s.pool.Exec(ctx, query, userID, records)
 	if err != nil {
 		return fmt.Errorf("failed to batch delete records: %w", err)

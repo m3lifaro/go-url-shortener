@@ -21,7 +21,7 @@ func TestAuthMiddlewareOptional(t *testing.T) {
 				return "token-123", nil
 			},
 		}
-		mw := authMiddlewareOptional(logger, auz)
+		mw := authMiddleware(logger, auz)
 
 		nextCalled := false
 		h := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -58,10 +58,10 @@ func TestAuthMiddlewareOptional(t *testing.T) {
 				return "", nil
 			},
 		}
-		mw := authMiddlewareOptional(logger, auz)
+		mw := authMiddleware(logger, auz)
 
 		h := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			t.Fatal("Хендлер не должен вызываться")
+			t.Fatal("Handler shouldn't be called")
 		}))
 
 		req := httptest.NewRequest("GET", "/", nil)

@@ -98,7 +98,7 @@ func gzipMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func authMiddlewareOptional(logger *zap.Logger, auz auth.Auth) func(http.Handler) http.Handler {
+func authMiddleware(logger *zap.Logger, auz auth.Auth) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var userID string
@@ -119,12 +119,10 @@ func authMiddlewareOptional(logger *zap.Logger, auz auth.Auth) func(http.Handler
 				}
 			}
 
-			// Если аутентификации нет, генерируем новый userID
 			if !hasAuth {
 				userID = uuid.New().String()
 			}
 
-			// Добавляем в контекст
 			ctx := context.WithValue(r.Context(), auth.UserIDKey, userID)
 			ctx = context.WithValue(ctx, auth.HasAuthKey, hasAuth)
 			ctx = context.WithValue(ctx, auth.ShouldSetCookieKey, !hasAuth)

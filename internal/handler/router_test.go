@@ -2,7 +2,6 @@ package handler
 
 import (
 	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -50,16 +49,6 @@ func hasCookie(resp *http.Response, cookieName string) bool {
 	cookies := resp.Cookies()
 	for _, cookie := range cookies {
 		if cookie.Name == cookieName {
-			fmt.Printf("  Name: %s\n", cookie.Name)
-			fmt.Printf("  Value: %s\n", cookie.Value)
-			fmt.Printf("  Path: %s\n", cookie.Path)
-			fmt.Printf("  Domain: %s\n", cookie.Domain)
-			fmt.Printf("  Expires: %s\n", cookie.Expires)
-			fmt.Printf("  MaxAge: %d\n", cookie.MaxAge)
-			fmt.Printf("  Secure: %t\n", cookie.Secure)
-			fmt.Printf("  HttpOnly: %t\n", cookie.HttpOnly)
-			fmt.Printf("  SameSite: %v\n", cookie.SameSite)
-			fmt.Println()
 			return true
 		}
 	}

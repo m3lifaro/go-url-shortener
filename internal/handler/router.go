@@ -16,22 +16,16 @@ func NewRouter(h *Handlers, logger *zap.Logger, auth *auth.AuthImpl) chi.Router 
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(authMiddlewareOptional(logger, auth))
+		r.Use(authMiddleware(logger, auth))
 		r.Route("/", func(r chi.Router) {
 			r.Post("/", h.Shorten)
 			r.Post("/api/shorten", h.ShortenJSON)
 			r.Post("/api/shorten/batch", h.BatchShorten)
 			r.Get("/{id}", h.Redirect)
 		})
-	})
-
-	// Routes with required auth
-	r.Group(func(r chi.Router) {
-		r.Use(authMiddlewareOptional(logger, auth))
-
-		r.Route("/api/user", func(r chi.Router) {
-			r.Get("/urls", h.User)
-			r.Delete("/urls", h.Delete)
+		r.Route("/api/user/urls", func(r chi.Router) {
+			r.Get("/", h.User)
+			r.Delete("/", h.Delete)
 		})
 	})
 
