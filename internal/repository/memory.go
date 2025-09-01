@@ -98,7 +98,7 @@ func (s *MemoryStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
 		return []model.UserLinkDto{}, nil
 	}
 	response := make([]model.UserLinkDto, 0, len(userCache))
-	for k, _ := range userCache {
+	for k := range userCache {
 		val, ok := s.cache[k]
 		if ok {
 			response = append(response, model.UserLinkDto{
@@ -146,9 +146,9 @@ func (s *MemoryStorage) BatchSet(records map[string]string, userID string) error
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	userCache, ok := s.userIndex[userID]
+	_, ok := s.userIndex[userID]
 	if !ok {
-		userCache = make(map[string]struct{})
+		userCache := make(map[string]struct{})
 		s.userIndex[userID] = userCache
 	}
 	for key := range records {
