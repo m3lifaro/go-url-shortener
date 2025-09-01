@@ -43,8 +43,9 @@ func TestAuthMiddlewareOptional(t *testing.T) {
 
 		assert.True(t, nextCalled)
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Empty(t, w.Result().Cookies())
-		_ = w.Result().Body.Close()
+		response := w.Result()
+		assert.Empty(t, response.Cookies())
+		_ = response.Body.Close()
 	})
 
 	t.Run("Claims UUID is empty", func(t *testing.T) {
