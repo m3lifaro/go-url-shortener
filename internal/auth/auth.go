@@ -6,15 +6,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type Auth struct {
+type Auth interface {
+	GenerateJWT(userID string) (string, error)
+	ParseJWT(tokenString string) (*UserClaims, error)
+}
+type AuthImpl struct {
 	secret []byte
 }
 
-func NewAuth(secret string) *Auth {
-	return &Auth{secret: []byte(secret)}
+func NewAuth(secret string) *AuthImpl {
+	return &AuthImpl{secret: []byte(secret)}
 }
 
-func (a *Auth) GenerateJWT(userID string) (string, error) {
+func (a *AuthImpl) GenerateJWT(userID string) (string, error) {
 	claims := &UserClaims{
 		UUID: userID, //rn without any other claims
 	}
@@ -22,7 +26,7 @@ func (a *Auth) GenerateJWT(userID string) (string, error) {
 	return token.SignedString(a.secret)
 }
 
-func (a *Auth) ParseJWT(tokenString string) (*UserClaims, error) {
+func (a *AuthImpl) ParseJWT(tokenString string) (*UserClaims, error) {
 	claims := &UserClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewRouter(h *Handlers, logger *zap.Logger, auth *auth.Auth) chi.Router {
+func NewRouter(h *Handlers, logger *zap.Logger, auth *auth.AuthImpl) chi.Router {
 	r := chi.NewRouter()
 	r.Use(gzipMiddleware(logger))
 	r.Use(LoggingMiddleware(logger))

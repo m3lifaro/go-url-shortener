@@ -98,37 +98,7 @@ func gzipMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func authMiddleware(logger *zap.Logger, auz *auth.Auth) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(auth.CookieName)
-			if err != nil {
-				logger.Error("got error getting cookie",
-					zap.Error(err))
-				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte("Authentication required"))
-				return
-			}
-
-			claims, err := auz.ParseJWT(cookie.Value)
-			if err != nil {
-				logger.Error("got error parsing JWT",
-					zap.Error(err))
-				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte("Invalid token"))
-				return
-			}
-
-			// Добавляем в контекст запроса
-			ctx := context.WithValue(r.Context(), auth.UserIDKey, claims.UUID)
-			ctx = context.WithValue(ctx, auth.HasAuthKey, true)
-
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
-func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handler) http.Handler {
+func authMiddlewareOptional(logger *zap.Logger, auz auth.Auth) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var userID string
@@ -160,6 +130,8 @@ func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handle
 			ctx = context.WithValue(ctx, auth.ShouldSetCookieKey, !hasAuth)
 
 			token, err := auz.GenerateJWT(userID)
+			println("!!!!!!")
+
 			if err == nil {
 				logger.Debug("got auth response",
 					zap.String("user_id", userID))
@@ -169,7 +141,7 @@ func authMiddlewareOptional(logger *zap.Logger, auz *auth.Auth) func(http.Handle
 					zap.Error(err))
 			}
 			rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, token: token, shouldSetCookie: !hasAuth}
-
+			println("!!!!!!")
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}
@@ -185,12 +157,11 @@ type responseWriter struct {
 
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
+	println("!!!!!!!!")
 	if rw.shouldSetCookie && (rw.statusCode < 400 || rw.statusCode == 409) {
 		http.SetCookie(rw, &http.Cookie{
 			Name:  auth.CookieName,
 			Value: rw.token,
-			//HttpOnly: true,
-			//SameSite: http.SameSiteStrictMode,
 		})
 	}
 

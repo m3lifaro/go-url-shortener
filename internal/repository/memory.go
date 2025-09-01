@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"go.uber.org/zap"
@@ -22,12 +23,12 @@ type Storage interface {
 }
 
 type MemoryStorage struct {
-	mu       sync.RWMutex
-	cache    map[string]map[string]string
-	linkMap  map[string]string
-	nextID   int
-	producer *Producer
-	logger   *zap.Logger
+	mu        sync.RWMutex
+	cache     map[string]model.ShortenRecord
+	userIndex map[string]map[string]struct{}
+	nextID    int
+	producer  *Producer
+	logger    *zap.Logger
 }
 
 func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
@@ -42,26 +43,25 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 		return nil, fmt.Errorf("failed to read events from file(%s): %w", fileName, err)
 	}
 	maxID := 0
-	cache := make(map[string]map[string]string)
-	linkMap := make(map[string]string)
-	for _, v := range *events {
-		userCache, ok := cache[v.UserID]
-		if !ok {
-			userCache = make(map[string]string)
-			cache[v.UserID] = userCache
+	cache := make(map[string]model.ShortenRecord)
+	linkMap := make(map[string]map[string]struct{})
+
+	for _, rec := range *events {
+		if r, ok := cache[rec.ShortenURL]; !ok || rec.CreatedAt.After(r.CreatedAt) {
+			cache[rec.ShortenURL] = rec
 		}
-		if e, exists := userCache[v.ShortenURL]; exists {
-			logger.Warn("got duplicated event for user",
-				zap.String("user_id", v.UserID),
-				zap.String("shorten_url", v.ShortenURL),
-				zap.String("url", v.URL),
-				zap.String("already_presented_as", e),
-			)
-			continue
+	}
+
+	for _, event := range cache {
+		if !event.IsDeleted {
+			userMap, ok := linkMap[event.UserID]
+			if !ok {
+				userMap = make(map[string]struct{})
+			}
+			userMap[event.ShortenURL] = struct{}{}
+			linkMap[event.UserID] = userMap
 		}
-		userCache[v.ShortenURL] = v.URL
-		linkMap[v.ShortenURL] = v.URL
-		convertedID, err := strconv.Atoi(v.ID)
+		convertedID, err := strconv.Atoi(event.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ID: %w", err)
 		}
@@ -75,39 +75,37 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 		return nil, fmt.Errorf("failed to create producer: %w", err)
 	}
 	return &MemoryStorage{
-		cache:    cache,
-		linkMap:  linkMap,
-		nextID:   maxID + 1,
-		producer: producer,
-		logger:   logger,
+		cache:     cache,
+		userIndex: linkMap,
+		nextID:    maxID + 1,
+		producer:  producer,
+		logger:    logger,
 	}, nil
 }
 
 func (s *MemoryStorage) Get(key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	//userCache, ok := s.cache[userID]
-	//if !ok {
-	//	return "", false, nil
-	//}
-	val, ok := s.linkMap[key]
-	//val, ok := userCache[key]
-	return val, ok, isDeleted, nil
+	val, ok := s.cache[key]
+	return val.URL, ok, val.IsDeleted, nil
 }
 
 func (s *MemoryStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	userCache, ok := s.cache[userID]
+	userCache, ok := s.userIndex[userID]
 	if !ok {
 		return []model.UserLinkDto{}, nil
 	}
 	response := make([]model.UserLinkDto, 0, len(userCache))
-	for k, v := range userCache {
-		response = append(response, model.UserLinkDto{
-			OriginalURL: v,
-			ShortURL:    k,
-		})
+	for k, _ := range userCache {
+		val, ok := s.cache[k]
+		if ok {
+			response = append(response, model.UserLinkDto{
+				OriginalURL: val.URL,
+				ShortURL:    k,
+			})
+		}
 	}
 	return response, nil
 }
@@ -115,29 +113,31 @@ func (s *MemoryStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
 func (s *MemoryStorage) Set(key, value, userID string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	userCache, ok := s.cache[userID]
-	if !ok {
-		userCache = make(map[string]string)
-		s.cache[userID] = userCache
-	}
-	if _, exists := userCache[key]; exists {
-		return "", fmt.Errorf("key %s already exists", key)
-	}
+	var record model.ShortenRecord
 
-	for k, v := range userCache {
-		if v == value {
-			return k, nil
+	if val, exists := s.cache[key]; exists {
+		return val.ShortenURL, nil
+	} else {
+		record = model.ShortenRecord{
+			ID:         strconv.Itoa(s.nextID),
+			URL:        value,
+			ShortenURL: key,
+			UserID:     userID,
+			IsDeleted:  false,
+			CreatedAt:  time.Now()}
+		s.cache[key] = record
+		userMap, ok := s.userIndex[userID]
+		if !ok {
+			userMap = make(map[string]struct{})
 		}
+		userMap[key] = struct{}{}
+		s.userIndex[userID] = userMap
 	}
 
-	record := &model.ShortenRecord{ID: strconv.Itoa(s.nextID), URL: value, ShortenURL: key, UserID: userID}
-
-	if err := s.producer.WriteEvent(record); err != nil {
+	if err := s.producer.WriteEvent(&record); err != nil {
 		return "", fmt.Errorf("failed to write event: %w", err)
 	}
 
-	userCache[key] = value
-	s.linkMap[key] = value
 	s.nextID++
 	return "", nil
 }
@@ -146,13 +146,13 @@ func (s *MemoryStorage) BatchSet(records map[string]string, userID string) error
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	userCache, ok := s.cache[userID]
+	userCache, ok := s.userIndex[userID]
 	if !ok {
-		userCache = make(map[string]string)
-		s.cache[userID] = userCache
+		userCache = make(map[string]struct{})
+		s.userIndex[userID] = userCache
 	}
 	for key := range records {
-		if _, exists := userCache[key]; exists {
+		if _, exists := s.cache[key]; exists {
 			return fmt.Errorf("key %s already exists", key)
 		}
 	}
@@ -163,7 +163,9 @@ func (s *MemoryStorage) BatchSet(records map[string]string, userID string) error
 			ID:         strconv.Itoa(s.nextID),
 			URL:        value,
 			ShortenURL: key,
-		})
+			UserID:     userID,
+			IsDeleted:  false,
+			CreatedAt:  time.Now()})
 		s.nextID++
 	}
 
@@ -171,8 +173,8 @@ func (s *MemoryStorage) BatchSet(records map[string]string, userID string) error
 		return fmt.Errorf("batch write failed: %w", err)
 	}
 
-	for key, value := range records {
-		userCache[key] = value
+	for _, value := range events {
+		s.cache[value.ShortenURL] = *value
 	}
 
 	return nil
@@ -182,18 +184,17 @@ func (s *MemoryStorage) BatchDelete(records []string, userID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	userCache, ok := s.cache[userID]
+	userCache, ok := s.userIndex[userID]
 	if !ok {
 		return nil
 	}
 
 	for _, key := range records {
-		//if _, exists := userCache[key]; exists {
+		delete(s.cache, key)
 		delete(userCache, key)
-		//}
 	}
 
-	s.cache[userID] = userCache
+	s.userIndex[userID] = userCache
 
 	return nil
 }
