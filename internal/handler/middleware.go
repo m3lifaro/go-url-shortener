@@ -130,7 +130,6 @@ func authMiddlewareOptional(logger *zap.Logger, auz auth.Auth) func(http.Handler
 			ctx = context.WithValue(ctx, auth.ShouldSetCookieKey, !hasAuth)
 
 			token, err := auz.GenerateJWT(userID)
-			println("!!!!!!")
 
 			if err == nil {
 				logger.Debug("got auth response",
@@ -141,7 +140,6 @@ func authMiddlewareOptional(logger *zap.Logger, auz auth.Auth) func(http.Handler
 					zap.Error(err))
 			}
 			rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, token: token, shouldSetCookie: !hasAuth}
-			println("!!!!!!")
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}
@@ -157,7 +155,6 @@ type responseWriter struct {
 
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
-	println("!!!!!!!!")
 	if rw.shouldSetCookie && (rw.statusCode < 400 || rw.statusCode == 409) {
 		http.SetCookie(rw, &http.Cookie{
 			Name:  auth.CookieName,
