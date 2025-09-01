@@ -43,7 +43,8 @@ func TestAuthMiddlewareOptional(t *testing.T) {
 
 		assert.True(t, nextCalled)
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Empty(t, w.Result().Cookies()) // Cookie не добавляется
+		assert.Empty(t, w.Result().Cookies())
+		_ = w.Result().Body.Close()
 	})
 
 	t.Run("Claims UUID is empty", func(t *testing.T) {
@@ -66,7 +67,6 @@ func TestAuthMiddlewareOptional(t *testing.T) {
 		req.AddCookie(&http.Cookie{Name: auth.CookieName, Value: "bad-uuid"})
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
-
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 }
