@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"mime"
 	"net/http"
+	"time"
 
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
@@ -22,6 +25,8 @@ func NewBatchShortenHandler(service *service.Shortener, baseURL string, logger *
 }
 
 func (h *BatchShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -50,8 +55,9 @@ func (h *BatchShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	}
+	userID, _ := auth.GetUserID(r.Context())
 
-	results, err := h.service.BatchShorten(batchReq, h.baseURL)
+	results, err := h.service.BatchShorten(ctx, batchReq, h.baseURL, userID)
 	if err != nil {
 		h.logger.Error("Failed to shorten batch request", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)

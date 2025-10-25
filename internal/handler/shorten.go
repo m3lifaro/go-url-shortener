@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
+	"time"
 
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
 )
@@ -23,6 +26,8 @@ func NewShortenHandler(service *service.Shortener, baseURL string, logger *zap.L
 }
 
 func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -33,23 +38,31 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	contentHeader := r.Header.Get("Content-Type")
-	mediaType, _, err := mime.ParseMediaType(contentHeader)
-	url := string(body)
-
-	if err != nil || (mediaType != "text/plain" && mediaType != "application/x-gzip") {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain' or 'application/x-gzip', got: " + mediaType))
-		return
-	}
 	defer r.Body.Close()
 
+	contentHeader := r.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(contentHeader)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Invalid Content-Type header"))
+		return
+	}
+
+	if mediaType != "text/plain" && mediaType != "application/x-gzip" && mediaType != "plain/text" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unsupported Content-Type. Expected 'text/plain', 'plain/text' or 'application/x-gzip', got: " + mediaType))
+		return
+	}
+
+	url := string(body)
 	if len(url) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Empty url not allowed"))
 		return
 	}
-	shortedURL, existedURL, err := h.service.Shorten(url)
+	userID, _ := auth.GetUserID(r.Context())
+	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
+	shortedURL, existedURL, err := h.service.Shorten(ctx, url, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		h.logger.Error(
@@ -70,6 +83,7 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		zap.String("url", url),
 		zap.String("shortedURL", respURL),
 		zap.Bool("existed", existedURL),
+		zap.String("user_id", userID),
 	)
 
 	w.Write([]byte(respURL))

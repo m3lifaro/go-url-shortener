@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"context"
+	"net/http"
+	"time"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 type RedirectHandler struct {
@@ -17,13 +21,18 @@ func NewRedirectHandler(service *service.Shortener, logger *zap.Logger) *Redirec
 }
 
 func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
 	key := chi.URLParam(r, "id")
-	url, exists, err := h.service.GetOriginal(key)
+	userID, _ := auth.GetUserID(r.Context())
+
+	h.logger.Debug("Shorten redirect request details", zap.String("user_id", userID))
+	url, exists, deleted, err := h.service.GetOriginal(ctx, key, userID)
 	if err != nil {
 		h.logger.Error(
 			"got error getting original",
@@ -34,6 +43,10 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if !exists {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if deleted {
+		w.WriteHeader(http.StatusGone)
 		return
 	}
 	h.logger.Debug("Redirect to",

@@ -16,14 +16,14 @@ import (
 
 func TestShortenHandler_ServeHTTP(t *testing.T) {
 	mock := &repository.MockStorage{
-		SetFunc: func(key, url string) (string, error) {
+		SetFunc: func(key, url, userID string) (string, error) {
 			return "", nil
 		},
-		GetFunc: func(key string) (string, bool, error) {
+		GetFunc: func(key, userID string) (original string, existed bool, isDeleted bool, error error) {
 			if key == "not_found" {
-				return "", false, nil
+				return "", false, false, nil
 			}
-			return "https://ya.ru", true, nil
+			return "https://ya.ru", true, false, nil
 		},
 	}
 
@@ -42,7 +42,7 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 		{method: http.MethodGet, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodPut, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
 		{method: http.MethodDelete, expectedCode: http.StatusMethodNotAllowed, expectedBody: "", header: validHeader},
-		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported Content-Type. Expected 'text/plain' or 'application/x-gzip', got: application/json", header: invalidHeader},
+		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Unsupported Content-Type. Expected 'text/plain', 'plain/text' or 'application/x-gzip', got: application/json", header: invalidHeader},
 		{method: http.MethodPost, expectedCode: http.StatusBadRequest, expectedBody: "Empty url not allowed", header: validHeader},
 		{method: http.MethodPost, expectedCode: http.StatusCreated, header: validHeader, body: "ya.ru"},
 	}

@@ -2,29 +2,34 @@ package repository
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"go.uber.org/zap"
 )
 
 type Storage interface {
-	Get(key string) (string, bool, error)
-	Set(key, url string) (string, error)
+	Get(ctx context.Context, key, userID string) (original string, existed bool, isDeleted bool, error error)
+	GetAll(ctx context.Context, userID string) ([]model.UserLinkDto, error)
+	Set(ctx context.Context, key, url, userID string) (string, error)
 	Close() error
-	BatchSet(records map[string]string) error
+	BatchSet(ctx context.Context, records map[string]string, userID string) error
+	BatchDelete(ctx context.Context, records []string, userID string) error
 }
 
 type MemoryStorage struct {
-	mu       sync.RWMutex
-	cache    map[string]string
-	nextID   int
-	producer *Producer
-	logger   *zap.Logger
+	mu        sync.RWMutex
+	cache     map[string]model.ShortenRecord
+	userIndex map[string]map[string]struct{}
+	nextID    int
+	producer  *Producer
+	logger    *zap.Logger
 }
 
 func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
@@ -39,18 +44,25 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 		return nil, fmt.Errorf("failed to read events from file(%s): %w", fileName, err)
 	}
 	maxID := 0
-	cache := make(map[string]string)
-	for _, v := range *events {
-		if e, exists := cache[v.ShortenURL]; exists {
-			logger.Warn("got duplicated event",
-				zap.String("shorten_url", v.ShortenURL),
-				zap.String("url", v.URL),
-				zap.String("already_presented_as", e),
-			)
-			continue
+	cache := make(map[string]model.ShortenRecord)
+	linkMap := make(map[string]map[string]struct{})
+
+	for _, rec := range *events {
+		if r, ok := cache[rec.ShortenURL]; !ok || rec.CreatedAt.After(r.CreatedAt) {
+			cache[rec.ShortenURL] = rec
 		}
-		cache[v.ShortenURL] = v.URL
-		convertedID, err := strconv.Atoi(v.ID)
+	}
+
+	for _, event := range cache {
+		if !event.IsDeleted {
+			userMap, ok := linkMap[event.UserID]
+			if !ok {
+				userMap = make(map[string]struct{})
+			}
+			userMap[event.ShortenURL] = struct{}{}
+			linkMap[event.UserID] = userMap
+		}
+		convertedID, err := strconv.Atoi(event.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ID: %w", err)
 		}
@@ -64,49 +76,82 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 		return nil, fmt.Errorf("failed to create producer: %w", err)
 	}
 	return &MemoryStorage{
-		cache:    make(map[string]string),
-		nextID:   maxID + 1,
-		producer: producer,
-		logger:   logger,
+		cache:     cache,
+		userIndex: linkMap,
+		nextID:    maxID + 1,
+		producer:  producer,
+		logger:    logger,
 	}, nil
 }
 
-func (s *MemoryStorage) Get(key string) (string, bool, error) {
+func (s *MemoryStorage) Get(ctx context.Context, key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	val, ok := s.cache[key]
-	return val, ok, nil
+	return val.URL, ok, val.IsDeleted, nil
 }
 
-func (s *MemoryStorage) Set(key, value string) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if _, exists := s.cache[key]; exists {
-		return "", fmt.Errorf("key %s already exists", key)
+func (s *MemoryStorage) GetAll(ctx context.Context, userID string) ([]model.UserLinkDto, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	userCache, ok := s.userIndex[userID]
+	if !ok {
+		return []model.UserLinkDto{}, nil
 	}
-
-	for k, v := range s.cache {
-		if v == value {
-			return k, nil
+	response := make([]model.UserLinkDto, 0, len(userCache))
+	for k := range userCache {
+		val, ok := s.cache[k]
+		if ok {
+			response = append(response, model.UserLinkDto{
+				OriginalURL: val.URL,
+				ShortURL:    k,
+			})
 		}
 	}
+	return response, nil
+}
 
-	record := &model.ShortenRecord{ID: strconv.Itoa(s.nextID), URL: value, ShortenURL: key}
+func (s *MemoryStorage) Set(ctx context.Context, key, value, userID string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var record model.ShortenRecord
 
-	if err := s.producer.WriteEvent(record); err != nil {
+	if val, exists := s.cache[key]; exists {
+		return val.ShortenURL, nil
+	} else {
+		record = model.ShortenRecord{
+			ID:         strconv.Itoa(s.nextID),
+			URL:        value,
+			ShortenURL: key,
+			UserID:     userID,
+			IsDeleted:  false,
+			CreatedAt:  time.Now()}
+		s.cache[key] = record
+		userMap, ok := s.userIndex[userID]
+		if !ok {
+			userMap = make(map[string]struct{})
+		}
+		userMap[key] = struct{}{}
+		s.userIndex[userID] = userMap
+	}
+
+	if err := s.producer.WriteEvent(&record); err != nil {
 		return "", fmt.Errorf("failed to write event: %w", err)
 	}
 
-	s.cache[key] = value
 	s.nextID++
 	return "", nil
 }
 
-func (s *MemoryStorage) BatchSet(records map[string]string) error {
+func (s *MemoryStorage) BatchSet(ctx context.Context, records map[string]string, userID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	_, ok := s.userIndex[userID]
+	if !ok {
+		userCache := make(map[string]struct{})
+		s.userIndex[userID] = userCache
+	}
 	for key := range records {
 		if _, exists := s.cache[key]; exists {
 			return fmt.Errorf("key %s already exists", key)
@@ -119,7 +164,9 @@ func (s *MemoryStorage) BatchSet(records map[string]string) error {
 			ID:         strconv.Itoa(s.nextID),
 			URL:        value,
 			ShortenURL: key,
-		})
+			UserID:     userID,
+			IsDeleted:  false,
+			CreatedAt:  time.Now()})
 		s.nextID++
 	}
 
@@ -127,9 +174,28 @@ func (s *MemoryStorage) BatchSet(records map[string]string) error {
 		return fmt.Errorf("batch write failed: %w", err)
 	}
 
-	for key, value := range records {
-		s.cache[key] = value
+	for _, value := range events {
+		s.cache[value.ShortenURL] = *value
 	}
+
+	return nil
+}
+
+func (s *MemoryStorage) BatchDelete(ctx context.Context, records []string, userID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	userCache, ok := s.userIndex[userID]
+	if !ok {
+		return nil
+	}
+
+	for _, key := range records {
+		delete(s.cache, key)
+		delete(userCache, key)
+	}
+
+	s.userIndex[userID] = userCache
 
 	return nil
 }

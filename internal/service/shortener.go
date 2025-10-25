@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -19,12 +20,12 @@ func NewShortener(storage repository.Storage) *Shortener {
 	return &Shortener{storage: storage}
 }
 
-func (s *Shortener) Shorten(url string) (shorten string, existed bool, err error) {
+func (s *Shortener) Shorten(ctx context.Context, url string, userID string) (shorten string, existed bool, err error) {
 	shortenURL, err := generateRandomString(defaultLength)
 	if err != nil {
 		return "", false, err
 	}
-	existedURL, err := s.storage.Set(shortenURL, url)
+	existedURL, err := s.storage.Set(ctx, shortenURL, url, userID)
 	if err != nil {
 		return "", false, err
 	}
@@ -34,7 +35,7 @@ func (s *Shortener) Shorten(url string) (shorten string, existed bool, err error
 	return shortenURL, false, nil
 }
 
-func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL string) ([]model.BatchResponseItem, error) {
+func (s *Shortener) BatchShorten(ctx context.Context, urls []model.BatchRequestItem, baseURL, userID string) ([]model.BatchResponseItem, error) {
 	records := make(map[string]string)
 	response := make([]model.BatchResponseItem, 0, len(urls))
 
@@ -50,15 +51,30 @@ func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL string) 
 		})
 	}
 
-	if err := s.storage.BatchSet(records); err != nil {
+	if err := s.storage.BatchSet(ctx, records, userID); err != nil {
 		return nil, err
 	}
 
 	return response, nil
 }
 
-func (s *Shortener) GetOriginal(key string) (string, bool, error) {
-	return s.storage.Get(key)
+func (s *Shortener) GetOriginal(ctx context.Context, key, userID string) (original string, existed bool, isDeleted bool, error error) {
+	return s.storage.Get(ctx, key, userID)
+}
+
+func (s *Shortener) GetUserUrls(ctx context.Context, userID string, baseURL string) ([]model.UserResponseItem, error) {
+	dtos, err := s.storage.GetAll(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting shortener urls by user(%s): %w", userID, err)
+	}
+	response := make([]model.UserResponseItem, 0, len(dtos))
+	for _, result := range dtos {
+		response = append(response, model.UserResponseItem{
+			OriginalURL: result.OriginalURL,
+			ShortURL:    fmt.Sprintf("%s%s", baseURL, result.ShortURL),
+		})
+	}
+	return response, nil
 }
 
 func generateRandomString(n int) (string, error) {
@@ -68,4 +84,12 @@ func generateRandomString(n int) (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b)[:n], nil
+}
+
+func (s *Shortener) DeleteUserUrls(ctx context.Context, userID string, linksToDelete []string) error {
+	err := s.storage.BatchDelete(ctx, linksToDelete, userID)
+	if err != nil {
+		return fmt.Errorf("error delete shorten urls by user(%s): %w", userID, err)
+	}
+	return nil
 }

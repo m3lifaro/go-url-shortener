@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/m3lifaro/go-url-shortener/cmd/config"
+	shortenAuth "github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/handler"
 	"github.com/m3lifaro/go-url-shortener/internal/logger"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
@@ -57,7 +58,8 @@ func main() {
 	defer storage.Close()
 	shortenService := service.NewShortener(storage)
 	handlers := handler.NewHandlers(shortenService, cfg.BaseURL, cfg.DBDsn, zl)
-	r := handler.NewRouter(handlers, zl)
+	auth := shortenAuth.NewAuth(cfg.AuthSecret)
+	r := handler.NewRouter(handlers, zl, auth)
 	log.Printf("Server started on %s", cfg.ServeAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
 }
