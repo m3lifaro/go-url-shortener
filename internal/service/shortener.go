@@ -85,8 +85,8 @@ func generateRandomString(n int) (string, error) {
 	return base64.URLEncoding.EncodeToString(b)[:n], nil
 }
 
-func (s *Shortener) DeleteUserUrls(userID string, linksRoDelete []string) error {
-	err := s.storage.BatchDelete(linksRoDelete, userID)
+func (s *Shortener) DeleteUserUrls(userID string, linksToDelete []string) error {
+	err := s.storage.BatchDelete(linksToDelete, userID)
 	if err != nil {
 		return fmt.Errorf("error delete shorten urls by user(%s): %w", userID, err)
 	}

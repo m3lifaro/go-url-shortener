@@ -16,6 +16,7 @@ const (
 	defaultFileStorage = "database"
 	defaultLogLevel    = "DEBUG"
 	defaultDBDsn       = ""
+	defaultSecret      = "change_me"
 )
 
 type Configuration struct {
@@ -24,6 +25,7 @@ type Configuration struct {
 	StorageFile  string
 	LogLevel     string
 	DBDsn        string
+	AuthSecret   string
 }
 
 func Load() (*Configuration, error) {
@@ -33,6 +35,7 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.StorageFile, "f", defaultFileStorage, "File for links storage")
 	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "Log level")
 	flag.StringVar(&cfg.DBDsn, "d", defaultDBDsn, "Database dsn")
+	flag.StringVar(&cfg.AuthSecret, "s", defaultSecret, "Authorization secret")
 	flag.Parse()
 	if serverAddr, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
 		cfg.ServeAddress = serverAddr
@@ -48,6 +51,9 @@ func Load() (*Configuration, error) {
 	}
 	if dbDsn, ok := os.LookupEnv("DATABASE_DSN"); ok {
 		cfg.DBDsn = dbDsn
+	}
+	if authSecret, ok := os.LookupEnv("AUTH_SECRET"); ok {
+		cfg.AuthSecret = authSecret
 	}
 	err := cfg.Validate()
 	if err != nil {

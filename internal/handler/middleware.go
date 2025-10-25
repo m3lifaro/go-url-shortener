@@ -104,43 +104,59 @@ func authMiddleware(logger *zap.Logger, auz auth.Auth) func(http.Handler) http.H
 			var userID string
 			var hasAuth bool
 
-			cookie, err := r.Cookie(auth.CookieName)
-			if err == nil {
-				claims, err := auz.ParseJWT(cookie.Value)
-				if err == nil {
-					userID = claims.UUID
-					if userID == "" {
-						w.WriteHeader(http.StatusUnauthorized)
-						return
-					}
-					hasAuth = true
-				} else {
-					logger.Debug("got error parsing cookie", zap.Error(err), zap.String("cookie", cookie.Value))
-				}
+			userID, hasAuth = parseUserCookie(r, auz, logger)
+			if hasAuth && userID == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
 			}
 
 			if !hasAuth {
 				userID = uuid.New().String()
 			}
 
-			ctx := context.WithValue(r.Context(), auth.UserIDKey, userID)
-			ctx = context.WithValue(ctx, auth.HasAuthKey, hasAuth)
-			ctx = context.WithValue(ctx, auth.ShouldSetCookieKey, !hasAuth)
+			ctx := createAuthContext(r, userID, hasAuth)
 
-			token, err := auz.GenerateJWT(userID)
-
-			if err == nil {
-				logger.Debug("got auth response",
-					zap.String("user_id", userID))
-			}
-			if err != nil {
-				logger.Error("got auth error",
-					zap.Error(err))
-			}
-			rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, token: token, shouldSetCookie: !hasAuth}
+			rw := generateTokenAndWriter(w, userID, hasAuth, auz, logger)
 			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}
+}
+
+func generateTokenAndWriter(w http.ResponseWriter, userID string, hasAuth bool, auz auth.Auth, logger *zap.Logger) *responseWriter {
+	token, err := auz.GenerateJWT(userID)
+
+	if err == nil {
+		logger.Debug("got auth response",
+			zap.String("user_id", userID))
+	}
+	if err != nil {
+		logger.Error("got auth error",
+			zap.Error(err))
+	}
+	rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK, token: token, shouldSetCookie: !hasAuth}
+	return rw
+}
+
+func createAuthContext(r *http.Request, userID string, hasAuth bool) context.Context {
+	ctx := context.WithValue(r.Context(), auth.UserIDKey, userID)
+	ctx = context.WithValue(ctx, auth.HasAuthKey, hasAuth)
+	ctx = context.WithValue(ctx, auth.ShouldSetCookieKey, !hasAuth)
+	return ctx
+}
+
+func parseUserCookie(r *http.Request, auz auth.Auth, logger *zap.Logger) (userID string, hasAuth bool) {
+	cookie, err := r.Cookie(auth.CookieName)
+	if err == nil {
+		claims, err := auz.ParseJWT(cookie.Value)
+		if err == nil {
+			userID = claims.UUID
+			hasAuth = true
+			return userID, hasAuth
+		} else {
+			logger.Debug("got error parsing cookie", zap.Error(err), zap.String("cookie", cookie.Value))
+		}
+	}
+	return userID, false
 }
 
 type responseWriter struct {

@@ -58,7 +58,7 @@ func main() {
 	defer storage.Close()
 	shortenService := service.NewShortener(storage)
 	handlers := handler.NewHandlers(shortenService, cfg.BaseURL, cfg.DBDsn, zl)
-	auth := shortenAuth.NewAuth("change_me")
+	auth := shortenAuth.NewAuth(cfg.AuthSecret)
 	r := handler.NewRouter(handlers, zl, auth)
 	log.Printf("Server started on %s", cfg.ServeAddress)
 	log.Fatal(http.ListenAndServe(cfg.ServeAddress, r))
