@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -15,7 +16,7 @@ import (
 
 type Storage interface {
 	Get(key, userID string) (original string, existed bool, isDeleted bool, error error)
-	GetAll(userID string) ([]model.UserLinkDto, error)
+	GetAll(ctx context.Context, userID string) ([]model.UserLinkDto, error)
 	Set(key, url, userID string) (string, error)
 	Close() error
 	BatchSet(records map[string]string, userID string) error
@@ -90,7 +91,7 @@ func (s *MemoryStorage) Get(key, userID string) (original string, existed bool, 
 	return val.URL, ok, val.IsDeleted, nil
 }
 
-func (s *MemoryStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
+func (s *MemoryStorage) GetAll(ctx context.Context, userID string) ([]model.UserLinkDto, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	userCache, ok := s.userIndex[userID]

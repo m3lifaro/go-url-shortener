@@ -37,9 +37,7 @@ func (s *PGStorage) Get(key, userID string) (original string, existed bool, isDe
 	}
 	return value, true, isDeleted, nil
 }
-func (s *PGStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
-	ctx := context.TODO()
-
+func (s *PGStorage) GetAll(ctx context.Context, userID string) ([]model.UserLinkDto, error) {
 	rows, err := s.pool.Query(ctx, `
         SELECT 
             short_url, 

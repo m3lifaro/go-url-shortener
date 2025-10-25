@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"mime"
 	"net/http"
+	"time"
 
 	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
@@ -92,6 +94,8 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ShortenJSONHandler) ServeUserHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -100,7 +104,7 @@ func (h *ShortenJSONHandler) ServeUserHTTP(w http.ResponseWriter, r *http.Reques
 	userID, _ := auth.GetUserID(r.Context())
 
 	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
-	results, err := h.service.GetUserUrls(userID, h.baseURL)
+	results, err := h.service.GetUserUrls(ctx, userID, h.baseURL)
 	if err != nil {
 		h.logger.Error("Failed to process all user urls request", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)

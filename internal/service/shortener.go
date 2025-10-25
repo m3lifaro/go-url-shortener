@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -61,8 +62,8 @@ func (s *Shortener) GetOriginal(key, userID string) (original string, existed bo
 	return s.storage.Get(key, userID)
 }
 
-func (s *Shortener) GetUserUrls(userID string, baseURL string) ([]model.UserResponseItem, error) {
-	dtos, err := s.storage.GetAll(userID)
+func (s *Shortener) GetUserUrls(ctx context.Context, userID string, baseURL string) ([]model.UserResponseItem, error) {
+	dtos, err := s.storage.GetAll(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting shortener urls by user(%s): %w", userID, err)
 	}

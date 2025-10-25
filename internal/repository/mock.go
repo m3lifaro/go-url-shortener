@@ -1,6 +1,10 @@
 package repository
 
-import "github.com/m3lifaro/go-url-shortener/internal/model"
+import (
+	"context"
+
+	"github.com/m3lifaro/go-url-shortener/internal/model"
+)
 
 type MockStorage struct {
 	GetFunc         func(key, userID string) (original string, existed bool, isDeleted bool, error error)
@@ -25,7 +29,7 @@ func (m *MockStorage) Close() error {
 func (m *MockStorage) Get(key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	return m.GetFunc(key, userID)
 }
-func (m *MockStorage) GetAll(userID string) ([]model.UserLinkDto, error) {
+func (m *MockStorage) GetAll(ctx context.Context, userID string) ([]model.UserLinkDto, error) {
 	return m.GetAllFunc(userID)
 }
 

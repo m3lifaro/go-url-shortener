@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultTimeoutSec = 30
+
 type Handlers struct {
 	Shorten      http.HandlerFunc
 	Redirect     http.HandlerFunc
