@@ -27,6 +27,8 @@ func NewShortenJSONHandler(service *service.Shortener, baseURL string, logger *z
 }
 
 func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -62,7 +64,7 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.GetUserID(r.Context())
 
 	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
-	shortedURL, existedURL, err := h.service.Shorten(url, userID)
+	shortedURL, existedURL, err := h.service.Shorten(ctx, url, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.logger.Error(
@@ -122,6 +124,8 @@ func (h *ShortenJSONHandler) ServeUserHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *ShortenJSONHandler) ServeDeleteHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodDelete {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -155,7 +159,7 @@ func (h *ShortenJSONHandler) ServeDeleteHTTP(w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusAccepted)
 		return
 	}
-	err = h.service.DeleteUserUrls(userID, req)
+	err = h.service.DeleteUserUrls(ctx, userID, req)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.logger.Error(

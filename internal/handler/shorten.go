@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
+	"time"
 
 	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
@@ -24,6 +26,8 @@ func NewShortenHandler(service *service.Shortener, baseURL string, logger *zap.L
 }
 
 func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), defaultTimeoutSec*time.Second)
+	defer cancel()
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -58,7 +62,7 @@ func (h *ShortenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	userID, _ := auth.GetUserID(r.Context())
 	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
-	shortedURL, existedURL, err := h.service.Shorten(url, userID)
+	shortedURL, existedURL, err := h.service.Shorten(ctx, url, userID)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		h.logger.Error(

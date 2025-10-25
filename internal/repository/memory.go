@@ -15,12 +15,12 @@ import (
 )
 
 type Storage interface {
-	Get(key, userID string) (original string, existed bool, isDeleted bool, error error)
+	Get(ctx context.Context, key, userID string) (original string, existed bool, isDeleted bool, error error)
 	GetAll(ctx context.Context, userID string) ([]model.UserLinkDto, error)
-	Set(key, url, userID string) (string, error)
+	Set(ctx context.Context, key, url, userID string) (string, error)
 	Close() error
-	BatchSet(records map[string]string, userID string) error
-	BatchDelete(records []string, userID string) error
+	BatchSet(ctx context.Context, records map[string]string, userID string) error
+	BatchDelete(ctx context.Context, records []string, userID string) error
 }
 
 type MemoryStorage struct {
@@ -84,7 +84,7 @@ func NewMemoryStorage(fileName string, logger *zap.Logger) (Storage, error) {
 	}, nil
 }
 
-func (s *MemoryStorage) Get(key, userID string) (original string, existed bool, isDeleted bool, error error) {
+func (s *MemoryStorage) Get(ctx context.Context, key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	val, ok := s.cache[key]
@@ -111,7 +111,7 @@ func (s *MemoryStorage) GetAll(ctx context.Context, userID string) ([]model.User
 	return response, nil
 }
 
-func (s *MemoryStorage) Set(key, value, userID string) (string, error) {
+func (s *MemoryStorage) Set(ctx context.Context, key, value, userID string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var record model.ShortenRecord
@@ -143,7 +143,7 @@ func (s *MemoryStorage) Set(key, value, userID string) (string, error) {
 	return "", nil
 }
 
-func (s *MemoryStorage) BatchSet(records map[string]string, userID string) error {
+func (s *MemoryStorage) BatchSet(ctx context.Context, records map[string]string, userID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -181,7 +181,7 @@ func (s *MemoryStorage) BatchSet(records map[string]string, userID string) error
 	return nil
 }
 
-func (s *MemoryStorage) BatchDelete(records []string, userID string) error {
+func (s *MemoryStorage) BatchDelete(ctx context.Context, records []string, userID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

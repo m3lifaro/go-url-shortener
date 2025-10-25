@@ -20,12 +20,12 @@ func NewShortener(storage repository.Storage) *Shortener {
 	return &Shortener{storage: storage}
 }
 
-func (s *Shortener) Shorten(url string, userID string) (shorten string, existed bool, err error) {
+func (s *Shortener) Shorten(ctx context.Context, url string, userID string) (shorten string, existed bool, err error) {
 	shortenURL, err := generateRandomString(defaultLength)
 	if err != nil {
 		return "", false, err
 	}
-	existedURL, err := s.storage.Set(shortenURL, url, userID)
+	existedURL, err := s.storage.Set(ctx, shortenURL, url, userID)
 	if err != nil {
 		return "", false, err
 	}
@@ -35,7 +35,7 @@ func (s *Shortener) Shorten(url string, userID string) (shorten string, existed 
 	return shortenURL, false, nil
 }
 
-func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL, userID string) ([]model.BatchResponseItem, error) {
+func (s *Shortener) BatchShorten(ctx context.Context, urls []model.BatchRequestItem, baseURL, userID string) ([]model.BatchResponseItem, error) {
 	records := make(map[string]string)
 	response := make([]model.BatchResponseItem, 0, len(urls))
 
@@ -51,15 +51,15 @@ func (s *Shortener) BatchShorten(urls []model.BatchRequestItem, baseURL, userID 
 		})
 	}
 
-	if err := s.storage.BatchSet(records, userID); err != nil {
+	if err := s.storage.BatchSet(ctx, records, userID); err != nil {
 		return nil, err
 	}
 
 	return response, nil
 }
 
-func (s *Shortener) GetOriginal(key, userID string) (original string, existed bool, isDeleted bool, error error) {
-	return s.storage.Get(key, userID)
+func (s *Shortener) GetOriginal(ctx context.Context, key, userID string) (original string, existed bool, isDeleted bool, error error) {
+	return s.storage.Get(ctx, key, userID)
 }
 
 func (s *Shortener) GetUserUrls(ctx context.Context, userID string, baseURL string) ([]model.UserResponseItem, error) {
@@ -86,8 +86,8 @@ func generateRandomString(n int) (string, error) {
 	return base64.URLEncoding.EncodeToString(b)[:n], nil
 }
 
-func (s *Shortener) DeleteUserUrls(userID string, linksToDelete []string) error {
-	err := s.storage.BatchDelete(linksToDelete, userID)
+func (s *Shortener) DeleteUserUrls(ctx context.Context, userID string, linksToDelete []string) error {
+	err := s.storage.BatchDelete(ctx, linksToDelete, userID)
 	if err != nil {
 		return fmt.Errorf("error delete shorten urls by user(%s): %w", userID, err)
 	}

@@ -23,8 +23,7 @@ func NewPGStorage(pool *pgxpool.Pool, logger *zap.Logger) *PGStorage {
 	}
 }
 
-func (s *PGStorage) Get(key, userID string) (original string, existed bool, isDeleted bool, error error) {
-	ctx := context.TODO()
+func (s *PGStorage) Get(ctx context.Context, key, userID string) (original string, existed bool, isDeleted bool, error error) {
 	var value string
 	err := s.pool.QueryRow(ctx, "select original_url, is_deleted from shorten_links where short_url=$1", key).Scan(&value, &isDeleted)
 	if err != nil {
@@ -76,8 +75,7 @@ func (s *PGStorage) GetAll(ctx context.Context, userID string) ([]model.UserLink
 	return links, nil
 }
 
-func (s *PGStorage) Set(key, url, userID string) (string, error) {
-	ctx := context.TODO()
+func (s *PGStorage) Set(ctx context.Context, key, url, userID string) (string, error) {
 	var existedURL string
 	var isNew bool
 	err := s.pool.QueryRow(ctx, `
@@ -97,8 +95,7 @@ func (s *PGStorage) Set(key, url, userID string) (string, error) {
 	return "", nil
 }
 
-func (s *PGStorage) BatchSet(records map[string]string, userID string) error {
-	ctx := context.TODO()
+func (s *PGStorage) BatchSet(ctx context.Context, records map[string]string, userID string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -117,8 +114,7 @@ func (s *PGStorage) BatchSet(records map[string]string, userID string) error {
 	return tx.Commit(ctx)
 }
 
-func (s *PGStorage) BatchDelete(records []string, userID string) error {
-	ctx := context.TODO()
+func (s *PGStorage) BatchDelete(ctx context.Context, records []string, userID string) error {
 
 	query := `
         UPDATE shorten_links 
