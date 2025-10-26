@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m3lifaro/go-url-shortener/internal/audit"
 	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
@@ -73,7 +74,8 @@ func TestRouter(t *testing.T) {
 	zl, _ := cfg.Build()
 	var shortenService = service.NewShortener(mock)
 	var auz = auth.NewAuth("super_secret")
-	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", "", zl), zl, auz))
+	auditMgr := &audit.Manager{}
+	ts := httptest.NewServer(NewRouter(NewHandlers(shortenService, "http://localhost:8080/", "", zl, auditMgr), zl, auz))
 	defer ts.Close()
 	tests := []struct {
 		method         string

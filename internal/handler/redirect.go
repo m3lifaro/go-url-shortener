@@ -6,17 +6,19 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/m3lifaro/go-url-shortener/internal/audit"
 	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
 )
 
 type RedirectHandler struct {
-	service *service.Shortener
-	logger  *zap.Logger
+	service      *service.Shortener
+	logger       *zap.Logger
+	auditManager *audit.Manager
 }
 
-func NewRedirectHandler(service *service.Shortener, logger *zap.Logger) *RedirectHandler {
+func NewRedirectHandler(service *service.Shortener, logger *zap.Logger, auditManager *audit.Manager) *RedirectHandler {
 	return &RedirectHandler{service: service, logger: logger}
 }
 
@@ -52,7 +54,13 @@ func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Debug("Redirect to",
 		zap.String("url", url),
 	)
-
+	event := audit.Event{
+		Timestamp: time.Now().Unix(),
+		Action:    "shorten",
+		UserID:    userID,
+		URL:       url,
+	}
+	h.auditManager.NotifyAll(event)
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
