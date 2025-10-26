@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/m3lifaro/go-url-shortener/internal/audit"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
@@ -31,7 +32,8 @@ func TestRedirectHandler_ServeHTTP(t *testing.T) {
 
 	var zl = zap.NewNop()
 	var shortenService = service.NewShortener(mock)
-	var handler = NewRedirectHandler(shortenService, zl)
+	auditMgr := &audit.Manager{}
+	var handler = NewRedirectHandler(shortenService, zl, auditMgr)
 	testCases := []struct {
 		method         string
 		url            string

@@ -19,7 +19,7 @@ type RedirectHandler struct {
 }
 
 func NewRedirectHandler(service *service.Shortener, logger *zap.Logger, auditManager *audit.Manager) *RedirectHandler {
-	return &RedirectHandler{service: service, logger: logger}
+	return &RedirectHandler{service: service, logger: logger, auditManager: auditManager}
 }
 
 func (h *RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
