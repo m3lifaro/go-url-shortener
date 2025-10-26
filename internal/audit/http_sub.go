@@ -7,15 +7,15 @@ import (
 	"net/http"
 )
 
-type HttpSubscriber struct {
+type HTTPSubscriber struct {
 	url string
 }
 
-func NewHttpSubscriber(url string) *HttpSubscriber {
-	return &HttpSubscriber{url: url}
+func NewHTTPSubscriber(url string) *HTTPSubscriber {
+	return &HTTPSubscriber{url: url}
 }
 
-func (h *HttpSubscriber) Notify(event Event) {
+func (h *HTTPSubscriber) Notify(event Event) {
 	data, _ := json.Marshal(event)
 	resp, err := http.Post(h.url, "application/json", bytes.NewBuffer(data))
 	if err != nil {

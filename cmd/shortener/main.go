@@ -63,7 +63,7 @@ func main() {
 		auditMgr.Register(audit.NewFileSubscriber(cfg.AuditFile))
 	}
 	if cfg.AuditURL != "" {
-		auditMgr.Register(audit.NewHttpSubscriber(cfg.AuditURL))
+		auditMgr.Register(audit.NewHTTPSubscriber(cfg.AuditURL))
 	}
 
 	shortenService := service.NewShortener(storage)
