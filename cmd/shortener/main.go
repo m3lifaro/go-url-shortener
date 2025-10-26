@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/m3lifaro/go-url-shortener/cmd/config"
+	"github.com/m3lifaro/go-url-shortener/internal/audit"
 	shortenAuth "github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/handler"
 	"github.com/m3lifaro/go-url-shortener/internal/logger"
@@ -56,8 +57,17 @@ func main() {
 		}
 	}
 	defer storage.Close()
+
+	auditMgr := &audit.Manager{}
+	if cfg.AuditFile != "" {
+		auditMgr.Register(audit.NewFileSubscriber(cfg.AuditFile))
+	}
+	if cfg.AuditURL != "" {
+		auditMgr.Register(audit.NewHTTPSubscriber(cfg.AuditURL))
+	}
+
 	shortenService := service.NewShortener(storage)
-	handlers := handler.NewHandlers(shortenService, cfg.BaseURL, cfg.DBDsn, zl)
+	handlers := handler.NewHandlers(shortenService, cfg.BaseURL, cfg.DBDsn, zl, auditMgr)
 	auth := shortenAuth.NewAuth(cfg.AuthSecret)
 	r := handler.NewRouter(handlers, zl, auth)
 	log.Printf("Server started on %s", cfg.ServeAddress)

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/m3lifaro/go-url-shortener/internal/audit"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"go.uber.org/zap"
 )
@@ -19,13 +20,13 @@ type Handlers struct {
 	Ping         http.HandlerFunc
 }
 
-func NewHandlers(svc *service.Shortener, baseURL string, dsn string, logger *zap.Logger) *Handlers {
+func NewHandlers(svc *service.Shortener, baseURL string, dsn string, logger *zap.Logger, auditManager *audit.Manager) *Handlers {
 	return &Handlers{
-		Shorten:      NewShortenHandler(svc, baseURL, logger).ServeHTTP,
-		Redirect:     NewRedirectHandler(svc, logger).ServeHTTP,
-		ShortenJSON:  NewShortenJSONHandler(svc, baseURL, logger).ServeHTTP,
-		User:         NewShortenJSONHandler(svc, baseURL, logger).ServeUserHTTP,
-		Delete:       NewShortenJSONHandler(svc, baseURL, logger).ServeDeleteHTTP,
+		Shorten:      NewShortenHandler(svc, baseURL, logger, auditManager).ServeHTTP,
+		Redirect:     NewRedirectHandler(svc, logger, auditManager).ServeHTTP,
+		ShortenJSON:  NewShortenJSONHandler(svc, baseURL, logger, auditManager).ServeHTTP,
+		User:         NewShortenJSONHandler(svc, baseURL, logger, auditManager).ServeUserHTTP,
+		Delete:       NewShortenJSONHandler(svc, baseURL, logger, auditManager).ServeDeleteHTTP,
 		BatchShorten: NewBatchShortenHandler(svc, baseURL, logger).ServeHTTP,
 		Ping:         NewPingHandler(dsn, logger).ServeHTTP,
 	}
