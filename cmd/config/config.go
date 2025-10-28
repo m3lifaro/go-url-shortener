@@ -17,6 +17,8 @@ const (
 	defaultLogLevel    = "DEBUG"
 	defaultDBDsn       = ""
 	defaultSecret      = "change_me"
+	defaultAuditFile   = ""
+	defaultAuditURL    = ""
 )
 
 type Configuration struct {
@@ -26,6 +28,8 @@ type Configuration struct {
 	LogLevel     string
 	DBDsn        string
 	AuthSecret   string
+	AuditFile    string
+	AuditURL     string
 }
 
 func Load() (*Configuration, error) {
@@ -36,6 +40,8 @@ func Load() (*Configuration, error) {
 	flag.StringVar(&cfg.LogLevel, "l", defaultLogLevel, "Log level")
 	flag.StringVar(&cfg.DBDsn, "d", defaultDBDsn, "Database dsn")
 	flag.StringVar(&cfg.AuthSecret, "s", defaultSecret, "Authorization secret")
+	flag.StringVar(&cfg.AuditFile, "audit-file", defaultAuditFile, "Path to audit log file")
+	flag.StringVar(&cfg.AuditURL, "audit-url", defaultAuditURL, "URL of audit service")
 	flag.Parse()
 	if serverAddr, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
 		cfg.ServeAddress = serverAddr
@@ -54,6 +60,12 @@ func Load() (*Configuration, error) {
 	}
 	if authSecret, ok := os.LookupEnv("AUTH_SECRET"); ok {
 		cfg.AuthSecret = authSecret
+	}
+	if auditFile, ok := os.LookupEnv("AUDIT_FILE"); ok {
+		cfg.AuditFile = auditFile
+	}
+	if auditURL, ok := os.LookupEnv("AUDIT_URL"); ok {
+		cfg.AuditURL = auditURL
 	}
 	err := cfg.Validate()
 	if err != nil {

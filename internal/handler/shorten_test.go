@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/m3lifaro/go-url-shortener/internal/audit"
 	"github.com/m3lifaro/go-url-shortener/internal/repository"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,8 @@ func TestShortenHandler_ServeHTTP(t *testing.T) {
 
 	var shortenService = service.NewShortener(mock)
 	var zl = zap.NewNop()
-	var handler = NewShortenHandler(shortenService, "http://localhost:8080/", zl)
+	auditMgr := &audit.Manager{}
+	var handler = NewShortenHandler(shortenService, "http://localhost:8080/", zl, auditMgr)
 	var validHeader = "text/plain; charset=utf-8"
 	var invalidHeader = "application/json; charset=utf-8"
 	testCases := []struct {

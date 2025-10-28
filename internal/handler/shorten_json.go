@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/m3lifaro/go-url-shortener/internal/audit"
 	"github.com/m3lifaro/go-url-shortener/internal/auth"
 	"github.com/m3lifaro/go-url-shortener/internal/model"
 	"github.com/m3lifaro/go-url-shortener/internal/service"
@@ -17,13 +18,14 @@ import (
 const jsonContentType = "application/json"
 
 type ShortenJSONHandler struct {
-	service *service.Shortener
-	baseURL string
-	logger  *zap.Logger
+	service      *service.Shortener
+	baseURL      string
+	logger       *zap.Logger
+	auditManager *audit.Manager
 }
 
-func NewShortenJSONHandler(service *service.Shortener, baseURL string, logger *zap.Logger) *ShortenJSONHandler {
-	return &ShortenJSONHandler{service: service, baseURL: baseURL, logger: logger}
+func NewShortenJSONHandler(service *service.Shortener, baseURL string, logger *zap.Logger, auditManager *audit.Manager) *ShortenJSONHandler {
+	return &ShortenJSONHandler{service: service, baseURL: baseURL, logger: logger, auditManager: auditManager}
 }
 
 func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +64,14 @@ func (h *ShortenJSONHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID, _ := auth.GetUserID(r.Context())
+
+	event := audit.Event{
+		Timestamp: time.Now().Unix(),
+		Action:    "shorten",
+		UserID:    userID,
+		URL:       url,
+	}
+	h.auditManager.NotifyAll(event)
 
 	h.logger.Info("Shorten cookie context", zap.String("user_id", userID))
 	shortedURL, existedURL, err := h.service.Shorten(ctx, url, userID)
