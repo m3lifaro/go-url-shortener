@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
